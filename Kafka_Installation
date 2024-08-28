@@ -48,6 +48,17 @@
    
     D:\kafka_2.12-3.6.1\bin\windows>kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic topic-1
 
+11. Output of Describing the topic - You can access the topic through any broker, but the broker sends the read/write requests to leader and the leader does it.
+    D:\kafka_2.12-3.6.1\bin\windows\kafka-topics.bat --bootstrap-server localhost:9092 --describe --topic topic-3
+    Output:-
+	Topic: topic-3  TopicId: uBj9aArfR1imALl832p_0A PartitionCount: 6       ReplicationFactor: 3    Configs:
+        Topic: topic-3  Partition: 0    Leader: 100     Replicas: 100,102,101   Isr: 100,102,101
+        Topic: topic-3  Partition: 1    Leader: 102     Replicas: 102,101,100   Isr: 102,101,100
+        Topic: topic-3  Partition: 2    Leader: 101     Replicas: 101,100,102   Isr: 101,100,102
+        Topic: topic-3  Partition: 3    Leader: 100     Replicas: 100,101,102   Isr: 100,101,102
+        Topic: topic-3  Partition: 4    Leader: 102     Replicas: 102,100,101   Isr: 102,100,101
+        Topic: topic-3  Partition: 5    Leader: 101     Replicas: 101,102,100   Isr: 101,102,100
+
 for multi-node Cluster setup:
 
 server.properties:
