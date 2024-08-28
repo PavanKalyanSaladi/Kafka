@@ -1,0 +1,78 @@
+ Kafka Setup Details - Windows
+==========================
+
+1.  Download Apache Kafka from the following location and extract the zip file at an appropriate location.
+	
+      Url:   https://kafka.apache.org/downloads
+
+2.  Start the zookeeper service. (Zookeeper comes with Kafka.  Separate download is not required ). 
+  
+     a. change to kafka installation directory:   ex:  D:> cd kafka_2.12-3.6.1
+
+     b.  D:\kafka_2.12-3.6.1\bin\windows>zookeeper-server-start.bat ..\..\config\zookeeper.properties
+
+3. After starting the zookeeper service, keep the terminal as minimized window and let the service keep running. 
+
+4. Start the kafka broker service.  
+    
+     a.   D:\kafka_2.12-3.6.1\bin\windows>kafka-server-start.bat ..\..\config\server.properties
+
+     b. config\server.properties contains the configuration properties with which we start the service. 
+
+5. After starting the kafka broker service, keep the terminal as minimized window and let the service keep running. 
+
+6. Managing Kafka Topics - Create a Topic
+
+    a. Create a Kafka Topic called 'topic-1" with 1 partiton and 1 replication-factor using the following command.
+
+        D:\kafka_2.12-3.6.1\bin\windows>kafka-topics.bat --create --bootstrap-server localhost:9092 --topic topic-1 --partitions 1 --replication-factor 1
+
+   b. You can create topics with multiple partitions and replications, provided you have a multi-broker kafka cluster running.
+
+       D:\kafka_2.12-3.6.1\bin\windows>kafka-topics.bat --bootstrap-server localhost:9092 --create --topic topic-1 --partitions 3 --replication-factor 3
+
+7. Managing Kafka Topics - List Existing Topics
+   
+      D:\kafka_2.12-3.6.1\bin\windows>kafka-topics.bat --bootstrap-server localhost:9092 --list
+
+8. Managing Kafka Topics - Describe a Topic
+
+    D:\kafka_2.12-3.6.1\bin\windows>kafka-topics.bat --bootstrap-server localhost:9092 --describe --topic topic-1
+
+
+9. Start a Kafka Console Producer
+
+     D:\kafka_2.12-3.6.1\bin\windows>kafka-console-producer.bat --bootstrap-server localhost:9092 --topic topic-1
+
+10. Start a Kafka Console Consumer
+   
+    D:\kafka_2.12-3.6.1\bin\windows>kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic topic-1
+
+for multi-node Cluster setup:
+
+server.properties:
+
+broker.id=100
+listeners=PLAINTEXT://localhost:9092
+advertised.listeners=PLAINTEXT://localhost:9092
+log.dirs=/tmp/kafka-logs-100
+
+server1.properties:
+
+broker.id=101
+listeners=PLAINTEXT://localhost:9093
+advertised.listeners=PLAINTEXT://localhost:9093
+log.dirs=/tmp/kafka-logs-101
+
+server2.properties:
+
+broker.id=102
+listeners=PLAINTEXT://localhost:9094
+advertised.listeners=PLAINTEXT://localhost:9094
+log.dirs=/tmp/kafka-logs-102
+
+Producing and consuming with key and value:
+
+kafka-console-producer.sh --broker-list localhost:9092 --topic topic-name --property "parse.key=true" --property "key.separator=:"
+
+.\bin\windows\kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic test-topic --from-beginning -property "key.separator= - " --property "print.key=true"
