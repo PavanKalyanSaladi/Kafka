@@ -1,0 +1,255 @@
+Day 1:
+--------
+4 APIs used in kafka,
+i.producer api
+ii.consumer api
+iii.kafka connect
+iv.streaming -> Source is kafka and destination is also kafka.
+
+-----------------------
+
+There are 2 types of msging system ,
+i. point to point  , data is sync
+ii. pub and subscriber model , data is asynchronously
+
+Data is categorised as,
+Structured 
+Unstructured
+Semi-structured
+
+OLTP , streaming and near real time application -> Kafka
+
+ELT vs ETL
+------------
+
+ELT extraction , destination will transform the data.
+ETL - extraction , transformation and loading the data. Kafka is used as ETL tool. 
+
+
+Security in KAFKA,
+1. sasl
+2. ssl / tls
+
+Controller broker has all the data that managers other brokers data and its own data.
+Q> offset.
+Q> See Spark and Flink integration with KAFKA.
+Q> Leader of the partition.
+Q> Qualifications to be a leader by a replica when the leader goes down. To be leader , it needs to be isr.
+Q> We can write custom partition wise operations. We can use custom partitioners like if we want to use any other partition. We cannot control the consumer offset like if the message gets expired in offset , then it will again start from offset 0.
+
+so while reading a message if the broker dies , then when it revives it starts reading from where it left as all these details are stored in this topic named __consumer_offsets. otherwise kafka will keep on reading the messages again and again. consumers keeps track of messages by keeping track of the message offset.
+
+Q> read and write is done by the leader , follower does nothing and waits to be leader when the leader goes down.
+The criteria for the follower to become a leader is it has to be the in sync replica.
+
+***> To control msgs that are written to a partition , a key is used.
+Msg with same key are written to the same partition.
+Each kafka message has a key, value and timestamp
+
+New kafka version will send messages as batches. Previously it was sending message sequentially.
+
+
+q> By default when you start kafka fresh then when we execute the command to list the topics it will show blank,not even __conusmer_offsets topic will be created
+
+q> kafka compressions type - snappy , gzip and lz4
+
+Q> Batch size and buffer size.
+
+Q> Kafka messages are published in key value pairs.
+
+Q> What is log4j in kafka.it is used for logging purpose in kafka.
+
+Q> Advertised listeners vs listeners in the server.properties file. Both the ports should be same.
+
+Q> grep -v '^#' -> To see lines without comments
+
+C:\kafka_2.12-3.6.1-B4-ans\bin\windows>kafka-topics.bat --describe --topic test-topic --bootstrap-server localhost:9092
+Topic: test-topic       TopicId: OzhbOx1xTfmShuJ3Lxr_9g PartitionCount: 1       ReplicationFactor: 1    Configs:
+        Topic: test-topic       Partition: 0    Leader: 100     Replicas: 100   Isr: 100
+		
+Q> How the controller is elected in kafka ? initially zookeeper decides and keeps the 1st broker that starts
+
+Q> Maximum number of partitions that can be kept in KAFKA.
+
+KAFKA COMMANDS NOTES USED IN PRACTICAL:
+-----------------------------------------------
+zookeeper-server-start.bat ..\..\config\zookeeper.properties
+
+kafka-server-start.bat ..\..\config\server.properties
+
+
+1. kafka-topics.bat --create --bootstrap-server localhost:9092 --topic test-topic --partitions 6 --replication-factor 3
+
+2. kafka-topics.bat --list --bootstrap-server localhost:9092
+
+3. kafka-topics.bat --describe --bootstrap-server localhost:9092
+
+4. kafka-topics.bat --describe --topic test-topic --bootstrap-server localhost:9092
+
+5. kafka-console-producer.bat --topic test-topic --bootstrap-server localhost:9092 
+
+6. kafka-console-consumer.bat --topic test-topic --bootstrap-server localhost:9092 -> It will show current msgs but not the previously sent msgs
+
+7. kafka-console-consumer.bat --topic test-topic --bootstrap-server localhost:9092 --from-beginning
+
+
+q> How to create message in key value pair in a topic???
+
+kafka-console-producer.bat --topic test-topic --bootstrap-server localhost:9092 --property parse.key=true --property key.separator=:
+
+>ERROR: This is an error message.
+>WARNING: This is a warning message.
+>INFO: This is an information message.
+>#&$*: This as a bad message.
+
+kafka-console-consumer.bat --topic test-topic --bootstrap-server localhost:9092 --property print.key=true --from-beginning  --property key.separator=:
+
+o/p:
+-----
+
+#&$*: This as a bad message.
+ERROR: This is an error message.
+WARNING: This is a warning message.
+INFO: This is an information message.
+
+
+But if we dont write like this in the above line and if we write like this then, 
+
+kafka-console-consumer.bat --topic test-topic --bootstrap-server localhost:9092 --from-beginning
+o/p: This will show the message without any keys but will shows the values of the keys instead.
+------ 
+ 
+ This is an error message.
+ This is a warning message.
+ This is an information message.
+ This as a bad message.
+ 
+kafka-console-consumer.bat --topic test-topic --bootstrap-server localhost:9092 --group log-group --from-beginning --property print.key=true --property key.separator=:
+
+
+C:\kafka_2.12-3.6.1-B4-ans\bin\windows>kafka-topics.bat --describe --topic test-topic2 --bootstrap-server localhost:9092
+Topic: test-topic2      TopicId: NmPxqWYHQxiwP5CA5AnCQA PartitionCount: 6       ReplicationFactor: 3    Configs:
+        Topic: test-topic2      Partition: 0    Leader: 100     Replicas: 100,101,102   Isr: 100,101,102
+        Topic: test-topic2      Partition: 1    Leader: 102     Replicas: 102,100,101   Isr: 102,100,101
+        Topic: test-topic2      Partition: 2    Leader: 101     Replicas: 101,102,100   Isr: 101,102,100
+        Topic: test-topic2      Partition: 3    Leader: 100     Replicas: 100,102,101   Isr: 100,102,101
+        Topic: test-topic2      Partition: 4    Leader: 102     Replicas: 102,101,100   Isr: 102,101,100
+        Topic: test-topic2      Partition: 5    Leader: 101     Replicas: 101,100,102   Isr: 101,100,102
+		
+		
+netstat -ano | findstr 2181 -> For searching ports in CMD in windows
+
+
+C:\kafka_2.12-3.6.1-B4-ans\bin\windows>kafka-topics.bat --describe --bootstrap-server localhost:9093
+Topic: test-topic       TopicId: 92-eFOBUQO-jr7vG8pD8sQ PartitionCount: 6       ReplicationFactor: 3    Configs:
+        Topic: test-topic       Partition: 0    Leader: 100     Replicas: 100,102,101   Isr: 100,102,101
+        Topic: test-topic       Partition: 1    Leader: 102     Replicas: 102,101,100   Isr: 102,101,100
+        Topic: test-topic       Partition: 2    Leader: 101     Replicas: 101,100,102   Isr: 101,100,102
+        Topic: test-topic       Partition: 3    Leader: 100     Replicas: 100,101,102   Isr: 100,101,102
+        Topic: test-topic       Partition: 4    Leader: 102     Replicas: 102,100,101   Isr: 102,100,101
+        Topic: test-topic       Partition: 5    Leader: 101     Replicas: 101,102,100   Isr: 101,102,100
+		
+Now kill broker 2 and see the difference in output 
+
+C:\kafka_2.12-3.6.1-B4-ans\bin\windows>kafka-topics.bat --describe --bootstrap-server localhost:9092
+Topic: test-topic       TopicId: 92-eFOBUQO-jr7vG8pD8sQ PartitionCount: 6       ReplicationFactor: 3    Configs:
+        Topic: test-topic       Partition: 0    Leader: 100     Replicas: 100,102,101   Isr: 100,102
+        Topic: test-topic       Partition: 1    Leader: 102     Replicas: 102,101,100   Isr: 102,100
+        Topic: test-topic       Partition: 2    Leader: 100     Replicas: 101,100,102   Isr: 100,102
+        Topic: test-topic       Partition: 3    Leader: 100     Replicas: 100,101,102   Isr: 100,102
+        Topic: test-topic       Partition: 4    Leader: 102     Replicas: 102,100,101   Isr: 102,100
+        Topic: test-topic       Partition: 5    Leader: 102     Replicas: 101,102,100   Isr: 102,100
+		
+
+Now we will start the killed zookeeper and then we see this ,
+
+C:\kafka_2.12-3.6.1-B4-ans\bin\windows>kafka-topics.bat --describe --bootstrap-server localhost:9092
+Topic: test-topic       TopicId: 92-eFOBUQO-jr7vG8pD8sQ PartitionCount: 6       ReplicationFactor: 3    Configs:
+        Topic: test-topic       Partition: 0    Leader: 100     Replicas: 100,102,101   Isr: 100,102,101
+        Topic: test-topic       Partition: 1    Leader: 102     Replicas: 102,101,100   Isr: 102,100,101
+        Topic: test-topic       Partition: 2    Leader: 100     Replicas: 101,100,102   Isr: 100,102,101
+        Topic: test-topic       Partition: 3    Leader: 100     Replicas: 100,101,102   Isr: 100,102,101
+        Topic: test-topic       Partition: 4    Leader: 102     Replicas: 102,100,101   Isr: 102,100,101
+        Topic: test-topic       Partition: 5    Leader: 102     Replicas: 101,102,100   Isr: 102,100,101
+		
+NOTE - If we observe closely we see that the leaders are not changed and the same 2 servers shows as the leaders. The reason is if the zookeeper will change the leader then there will be some downtime observed as in KAFKA only the leaders produces and consumes the messages, the follower does not nothing and maintains isr so that when a leader fails it will become the leader. The criteria to become a leader by the follower is ISR. 
+
+NOTE if the node is not down and the kafka broker is communicating in a delayed manner to the zookepeer then also it will not that node in the ISR of the list.
+
+KAFKA PRODUCER - It is a client application for pushing the messages to the KAFKA BROKER.
+
+java , go , scala , python , node js , .net , etc are some of the languages that are used for writing the kafka application like to produce .
+
+Q> KAFKA default buffer memory.
+
+Q> producer record should have topic name , key(not mandatory) and value(which is the message) . we can write 2 params as well.
+
+3 WAYS WE CAN SEND DATA IN KAFKA IN A PARTITION,
+i. Round Robin
+
+ii. Hash partitioner - it is a deafult one,it will send relevant data to partiton . Without key we cannot write for both hash partitioner and custom partitioner. Using the hash key we are writing the data. Only if we have the key we can do the partitioning.
+
+iii. Custom partitioner
+
+Suppose we have 3 partitions suppose partition 0 , partition 1 and partition 2. We have a data , it will save the data in the partition like this , 
+
+broker id numbers of 3 instances = 100, 101 and 102
+no. of partitions = 3 
+
+100 % 3 = 1 i.e. it wil save in partition 1.
+101 % 3 = 2 i.e. it will save in partition 2.
+102 % 3 = 0 i.e. it will save in partition 0.
+
+While writing each message it will assign an offset key and a timestamp.
+The key and values in kafka is represented in byte array. It can range from 0 to max record size allowed in kafka which is 1 mb.
+
+
+Data is a memory object that we have stored in the memory. We convert it to byte array so that it can be sent over the network.
+
+PRODUCER can fire messages in these fashion,
+i. Fire and Forget
+ii. Synchronous - Until i get a metadata( serialiser key , hashcode , partition , topic name,offset values) or error msg it will not send the next msg.
+iii. Asynchronous
+
+The kafka data is stored in RAM. The data is converted in bytearray format before being transmitter over the network. The kafka stores the data in serialised format or bytearray format(please check). Producer will serialise the data and the consumer will deserialise the data.
+
+We have to specify the serialiser for the key and value.
+
+Common serialization forat used in kafka are,
+1. JSON    - > Schema is defined in JSON
+2. AVRO    - > Language neutral deserialisation format.
+3. Protobuf
+4. String/Plaintext
+5. Custom Binary data formats
+
+Kafka is used for safekeeping transactions so that user can refer what went wrong.Basically used for auditing and analysis.Also stores logs and identifies the potential problems. So instead of sending directly to the application we are sending the data through Kafka.
+
+Once the producers sends the msgs to the kafka , then it will store the msgs as per FIFO order.
+
+A batch is assginned to a partition, as per the type of data.
+
+100 ms is the default time for retries for a fail kafka message. this is configured like how many retries we want to try.
+
+
+Even if you dont use the key still then you have to use string serialiser.
+
+Q> Controller , leader , broker , find the difference 
+
+Kafka has a default limit of 1MB per message in the topic.
+
+When we get the metadata we come to know that the message write is successful i.e. provided offset key for each message.
+
+oncompletion method in code will take metadata or error msg.
+
+
+acks = 0 -> no acknowledgement.
+acks = 1 -> wait will for leader responce without waiting for followers responce.
+acks = all -> Will wait for leader and follower responce.
+
+q> memory optimisation in kafka
+
+kafka inserts data in FIFO order.
+
+Q> Types of serialiser and deserialiser in kafka. 
+
+objects , strings, integers and dict we can pass it to kafka 
