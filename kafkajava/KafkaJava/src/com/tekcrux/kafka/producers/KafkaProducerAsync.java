@@ -13,7 +13,7 @@ public class KafkaProducerAsync {
 	      props.put("key.serializer","org.apache.kafka.common.serialization.StringSerializer");
 	      props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 	      props.put("batch.size", 20480);
-	      props.put("linger.ms", 1000);	        
+	      props.put("linger.ms", 1000); 
 	      
 	      Producer<String, String> producer = new KafkaProducer <>(props);
 
