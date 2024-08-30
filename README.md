@@ -3,10 +3,13 @@
 ==========================================================================
 
 Step-1: Follow the Kafka_Installation file for Single Node Cluster. <br/>
-&nbsp; We are running in the windows, so use .bat excutable file in 2.12-3.6.1
+&emsp; 	We are running in the windows, so use .bat excutable file in 2.12-3.6.1
 
 Step-2: Worked on the 3.6.1v to create a multi node cluster by configuring server.properties as per the broker. <br/>
-	Follow the Kafka_Installation (for referrece) need to be done in config/
+&emsp; 	Follow the Kafka_Installation (for referrece) need to be done in config/ <br/>
+&emsp; 	```>kafka-server-start.bat ..\..\config\server.properties <br/>
+&emsp; 	>kafka-server-start.bat ..\..\config\server1.properties	<br/>
+&emsp; 	>kafka-server-start.bat ..\..\config\server1.properties	<br/> ```
 
 Step-3: Run the Producer(Sync, Async, FF) and Consumer to understand the streaming.
 
