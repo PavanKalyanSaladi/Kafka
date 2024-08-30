@@ -12,7 +12,7 @@ public class ProducerTest {
 		// TODO Auto-generated method stub
 		
 		String topicName = "logs";
-
+		
 		// Mention the File path where you have placed
 		String filePath = "C:/Kafka_Training_Files/kafkajava/KafkaJava/serverlog-sample-1.txt";
 		
@@ -34,8 +34,10 @@ public class ProducerTest {
 			while ((line = reader.readLine()) != null) {
 	            // Check if the line starts with "WARN"
 	            if (line.startsWith("WARN") || line.startsWith("ERROR")) {
-	          	  // Capture "WARN" and store it 
-	                String key = line.substring(0, 4);
+	            	
+	                String content[] = line.split(" ");
+	                
+	                String key = content[0];
 	                
 	                // Remove "WARN" from the start of the line and trim any leading/trailing whitespace
 	                String value = line.substring(5).trim();
