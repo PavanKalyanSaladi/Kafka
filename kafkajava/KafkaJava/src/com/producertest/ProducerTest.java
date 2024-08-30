@@ -2,6 +2,8 @@ package com.producertest;
 
 import java.util.*;
 
+import java.io.*;
+
 import org.apache.kafka.clients.producer.*;
 
 public class ProducerTest {
@@ -10,18 +12,9 @@ public class ProducerTest {
 		// TODO Auto-generated method stub
 		
 		String topicName = "logs";
-		
-		Dictionary<String, String> dict= new Hashtable<>();
-		dict.put("INFO1", "This is a message with content");
-		dict.put("INFO2", "This is a some other message");
-		dict.put("INFO3", "Sample message one more time");
-		dict.put("WARN1", "You have unused variables in your code");
-		dict.put("ERROR1", "Something bad happened");
-		dict.put("ERROR2", "NoClassDefFound Exception thrown");
-		dict.put("WARN2", "More details about the error");
-		dict.put("INFO4", "Back to normal");
-		dict.put("INFO5", "This is a message with content");
-		dict.put("ERROR3", "Something bad happened");
+
+		// Mention the File path where you have placed
+		String filePath = "C:/Kafka_Training_Files/kafkajava/KafkaJava/serverlog-sample-1.txt";
 		
 		Properties props = new Properties();
 		
@@ -33,21 +26,30 @@ public class ProducerTest {
 	    
 	    Producer<String, String> producer = new KafkaProducer <>(props);				  		   
 		  
-	      System.out.println("Starting KafkaProducerTest ...");
-	      
-		  try { 
-			  Enumeration<String> k = dict.keys();
-		      while (k.hasMoreElements()) {
-		    	  String key = k.nextElement();
-		          producer.send(new ProducerRecord<>(topicName, key + " : "+ dict.get(key)));
-		          System.out.println("Key: " + key + ", Value: "+ dict.get(key));
-		      }
-		      System.out.println("Production Completed...");
-		  }
-		  catch (Exception e) { 
-			  e.printStackTrace();
-		  } 		  
-		  producer.close();
+	    System.out.println("Starting KafkaProducerTest ...");
+
+		try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+			String line;
+
+			while ((line = reader.readLine()) != null) {
+	            // Check if the line starts with "WARN"
+	            if (line.startsWith("WARN") || line.startsWith("ERROR")) {
+	          	  // Capture "WARN" and store it 
+	                String key = line.substring(0, 4);
+	                
+	                // Remove "WARN" from the start of the line and trim any leading/trailing whitespace
+	                String value = line.substring(5).trim();
+	                
+	                producer.send(new ProducerRecord<>(topicName, key, value));
+                    System.out.println("Key: " + key + ", Value: " + value);
+	            }
+	        }
+	        System.out.println("Production Completed...");
+	    }		  
+		catch (Exception e) { 
+			e.printStackTrace();
+		} 		  
+		producer.close();
 	    
 	}
 
