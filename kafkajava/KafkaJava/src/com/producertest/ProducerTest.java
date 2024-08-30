@@ -28,8 +28,8 @@ public class ProducerTest {
 	    props.put("bootstrap.servers", "localhost:9092,localhost:9093");
 	    props.put("key.serializer","org.apache.kafka.common.serialization.StringSerializer");
 	    props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-//	    props.put("batch.size", 20480);
-//	    props.put("linger.ms", 1000);
+	    props.put("batch.size", 20480);
+	    props.put("linger.ms", 1000);
 	    
 	    Producer<String, String> producer = new KafkaProducer <>(props);				  		   
 		  
@@ -39,9 +39,10 @@ public class ProducerTest {
 			  Enumeration<String> k = dict.keys();
 		      while (k.hasMoreElements()) {
 		    	  String key = k.nextElement();
-		          producer.send(new ProducerRecord<>(topicName, "Key: " + key + ", Value: "+ dict.get(key)));
-		          System.out.println("Produced the Message....");
+		          producer.send(new ProducerRecord<>(topicName, key + " : "+ dict.get(key)));
+		          System.out.println("Key: " + key + ", Value: "+ dict.get(key));
 		      }
+		      System.out.println("Production Completed...");
 		  }
 		  catch (Exception e) { 
 			  e.printStackTrace();
