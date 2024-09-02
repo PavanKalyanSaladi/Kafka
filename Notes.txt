@@ -252,4 +252,53 @@ kafka inserts data in FIFO order.
 
 Q> Types of serialiser and deserialiser in kafka. 
 
-objects , strings, integers and dict we can pass it to kafka 
+objects , strings, integers and dict we can pass it to kafka
+
+-------------------------------------------------------------------------------------------
+02/09/24
+
+CONSUMER CONFIGURATIONS: ---
+
+The assignment of partition to consumers will be done by 'Consumer Group Leader' as:
+    
+	1. Range - Assigns to each consumer a consecutive subset of partitions of a topic like	(total / available = allotment)
+		
+		Topic 1			Consumer Group		Topic 2
+			p1					c1				p1
+			p2					||				p2
+			p3					c2				p3
+	
+	2. Round Robin - Assigns to each consumer a partition of topic one by one (one by one allocation in circle)
+		
+		Topic 1			Consumer Group		Topic 2
+			p1					c1				p1
+			p2					c2				p2
+			p3					c1				p3
+
+Q) What is Partition-Rebalancing??
+	When a consumer is dead/unavailable the consumer group assigns the partitions of dead leader to available consumers that can desribe
+		as failover consumer and scaling up the consumers.
+		
+Q) What is record?
+	The data transform is happening in the form of batches.
+	The batches contain multiple records, records have one or more messages.
+	A message is in the form of bytes.
+
+
+COMMIT & OFFSET: ---
+	There is a topic named '__consumer_offsets' created once started consuming the topic.
+	Offset is a position of the comsumer to track at which position it is consuming in each partition.
+	The action of updating the current position in the partition known as commit.
+	Cases:-
+	1. If the committed offset is smaller than the last message offset, then duplication happens
+		1	2(committed offset)	3	4	5	6	7	8(last message)	
+		-- so 2 to 8 are consumed again which leads to duplication
+	2. If the committed offset is larger than the last message offset, chance of data missing
+		1	2	3	4	5(last message)		6	7	8(commited offset)
+		-- so 6 & 7 are not consumed which leads to data loss
+	Ways of committing offset:-
+	1. Automatic Commit									-	enable.auto.commit=true -> It commits the last offset every 5s
+	2. Commit Current Offset							-	auto.commit.offset=false -> It commits when the application chooses commitSync()
+	3. Asynchronous Commit								-	commitAsync() -> It won't wait for the response of commit
+	4. Combining Synchronous & Asynchronous Commits		-	commitAsync() - > To consume faster & commitSync() -> Before closing the offset
+	5. Commit Specified Offset							-	You can specify a particular number to maintain the specific number of commit
