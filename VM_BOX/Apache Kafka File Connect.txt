@@ -1,0 +1,176 @@
+Kafka-file-connector:
+----------------------
+vim config/connect-standalone.properties:
+-----------------------------------------------
+bootstrap.servers=localhost:9092
+rest.port=9999
+key.converter=org.apache.kafka.connect.storage.StringConverter
+value.converter=org.apache.kafka.connect.storage.StringConverter
+key.converter.schemas.enable=true
+value.converter.schemas.enable=true
+offset.storage.file.filename=/tmp/connect.offsets
+offset.flush.interval.ms=10000
+plugin.path=/usr/local/share/java,/usr/local/share/kafka/plugins,/opt/connectors,
+
+
+In vim config/connect-file-source.properties:
+------------------------------------------------
+name=local-file-source
+connector.class=FileStreamSource
+tasks.max=1
+file=/home/tekcrux/test.txt
+topic=connect-test
+
+In vim config/connect-file-sink.properties:
+----------------------------------------------
+name=local-file-sink
+connector.class=FileStreamSink
+tasks.max=1
+file=/home/tekcrux/test.sink.txt
+topics=connect-test
+
+Start the server and zookeeper(if not started):
+-----------------------------------------------
+cd kafka_2.12-3.6.1
+
+./bin/zookeeper-server-start.sh config/zookeeper.properties
+./bin/kafka-server-start.sh config/server.properties
+
+Open another terminal:
+----------------------
+Create topic 'connect-test' and run the consumer:
+----------------------------------------------
+
+./bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --topic connect-test --partitions 1 --replication-factor 1
+./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic connect-test
+
+File-Connector Command:
+-----------------------
+./bin/connect-standalone config/connect-standalone.properties config/connect-file-source.properties config/connect-file-sink.properties
+
+Open another terminal:
+----------------------
+
+tail -f /home/tekcrux/test.sink.txt
+
+Open another terminal:
+----------------------
+echo "Hello" >> test.txt
+echo "Hai, How are you?" >> /home/tekcrux/test.txt
+
+cd /tmp/
+
+ls
+
+cat connect.offsets
+
+=======================================================
+
+HDFS connector:
+---------------
+
+// Insatlled in  /home/tekcrux/confluent-5.5.1/share/confluent-hub-components
+
+In cd/confluent-5.5.1/bin/
+--------------------------
+./confluent-hub install confluentinc/kafka-connect-hdfs:5.5.1 
+
+In vim config/connect-standalone.properties:
+-----------------------------------------------
+bootstrap.servers=localhost:9092
+rest.port=9999
+key.converter=org.apache.kafka.connect.storage.StringConverter
+value.converter=org.apache.kafka.connect.storage.StringConverter
+key.converter.schemas.enable=false
+value.converter.schemas.enable=false
+offset.storage.file.filename=/tmp/connect.offsets
+offset.flush.interval.ms=10000
+#plugin.path=/home/tekcrux/confluent-5.5.1/share/confluent-hub-components/confluentinc-kafka-connect-hdfs
+plugin.path=/usr/share/java,/home/tekcrux/confluent-5.5.1/share/confluent-hub-components/confluentinc-kafka-connect-hdfs
+
+In vim config/connect-file-source.properties:
+------------------------------------------------
+name=local-file-source
+connector.class=FileStreamSource
+tasks.max=1
+file=/home/tekcrux/test_2.txt
+topic=test_hdfs
+
+cd share/confluent-hub-components/confluentinc-kafka-connect-hdfs/etc/
+----------------------------------------------------------------------------------------------------------------------
+vim share/confluent-hub-components/confluentinc-kafka-connect-hdfs/etc/quickstart-hdfs.properties
+
+name=hdfs-sink
+connector.class=io.confluent.connect.hdfs.HdfsSinkConnector
+tasks.max=1
+topics=test_hdfs
+hdfs.url=hdfs://quickstart.tekcrux:8020/user/tekcrux/kafka_topics
+flush.size=3
+format.class=io.confluent.connect.hdfs.avro.AvroFormat
+
+#create kafka_topics directory in /user/tekcrux: hadoop fs -mkdir kafka_topics
+
+hadoop fs -chmod -R 777 kafka_topics
+
+./bin/connect-standalone config/connect-standalone.properties config/connect-file-source.properties share/confluent-hub-components/confluentinc-kafka-connect-hdfs/etc/quickstart-hdfs.properties
+
+Open another terminal:
+----------------------
+Create topic 'test_hdfs' and run the consumer:
+----------------------------------------------
+./bin/kafka-topics --create --zookeeper localhost:2181 --topic test_hdfs --partitions 1 --replication-factor 1
+./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test_hdfs
+
+echo "Hello" >> /home/tekcrux/test_2.txt
+echo "Hai, How are you?" >> /home/tekcrux/test_2.txt
+
+hadoop fs -ls
+
+hadoop fs -mkdir test
+
+hadoop fs -ls
+
+[tekcrux@quickstart confluent-5.5.1]$ ./bin/confluent-hub install confluentinc/kafka-connect-hdfs:5.5.1
+The component can be installed in any of the following Confluent Platform installations: 
+  1. /home/tekcrux/confluent-5.5.1 (found in the current directory) 
+  2. /home/tekcrux/confluent-5.5.1 (where this tool is installed) 
+Choose one of these to continue the installation (1-2): 2
+Do you want to install this into /home/tekcrux/confluent-5.5.1/share/confluent-hub-components? (yN) y
+
+ 
+Component's license: 
+Confluent Community License 
+http://www.confluent.io/confluent-community-license 
+I agree to the software license agreement (yN) y
+
+
+
+ software license agreement (yN) y
+
+Downloading component Kafka Connect HDFS 5.5.1, provided by Confluent, Inc. from Confluent Hub and installing into /home/tekcrux/confluent-5.5.1/share/confluent-hub-components 
+Detected Worker's configs: 
+  1. Standard: /home/tekcrux/confluent-5.5.1/config/connect-distributed.properties 
+  2. Standard: /home/tekcrux/confluent-5.5.1/config/connect-standalone.properties 
+  3. Standard: /home/tekcrux/confluent-5.5.1/etc/schema-registry/connect-avro-distributed.properties 
+  4. Standard: /home/tekcrux/confluent-5.5.1/etc/schema-registry/connect-avro-standalone.properties 
+  5. Used by Connect process with PID 21377: config/connect-standalone.properties 
+Do you want to update all detected configs? (yN) y
+
+Adding installation directory to plugin path in the following files: 
+  /home/tekcrux/confluent-5.5.1/config/connect-distributed.properties 
+  /home/tekcrux/confluent-5.5.1/config/connect-standalone.properties 
+  /home/tekcrux/confluent-5.5.1/etc/schema-registry/connect-avro-distributed.properties 
+  /home/tekcrux/confluent-5.5.1/etc/schema-registry/connect-avro-standalone.properties 
+  config/connect-standalone.properties 
+ 
+Completed 
+
+
+
+
+
+
+
+
+
+

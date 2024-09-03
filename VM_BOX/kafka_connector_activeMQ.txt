@@ -1,0 +1,83 @@
+Activemq-connector:
+-------------------
+
+In vim etc/kafka/connect-standalone.properties:
+-----------------------------------------------
+bootstrap.servers=localhost:9092
+rest.port=9999
+key.converter=org.apache.kafka.connect.storage.StringConverter
+value.converter=org.apache.kafka.connect.storage.StringConverter
+key.converter.schemas.enable=true
+value.converter.schemas.enable=true
+offset.storage.file.filename=/tmp/connect.offsets
+offset.flush.interval.ms=10000
+plugin.path=/usr/share/java,/opt/confluent-5.5.1/share/java/kafka-connect-activemq/
+
+
+In vim etc/kafka-connect-activemq/ActiveMQSourceConnector.properties:
+---------------------------------------------------------------------
+
+name=MySourceConnector
+tasks.max=1
+connector.class=io.confluent.connect.activemq.ActiveMQSourceConnector
+kafka.topic=jms.test
+activemq.url=tcp://localhost:61616
+jms.destination.name=jms.q
+jms.destination.type=topic
+
+#
+# Confluent license information
+#
+confluent.license=
+
+confluent.topic.bootstrap.servers=localhost:9092
+
+
+In vim etc/kafka/connect-file-sink.properties:
+----------------------------------------------
+name=local-file-sink
+connector.class=FileStreamSink
+tasks.max=1
+file=/home/cloudera/test-connect.txt
+topics=jms.test
+
+
+Start the kafka server and zookeeper(if not started):
+-----------------------------------------------------
+cd /opt/confluent-5.5.1
+
+./bin/zookeeper-server-start etc/kafka/zookeeper.properties
+
+./bin/kafka-server-start etc/kafka/server.properties
+
+Open another terminal:
+----------------------
+Create topic 'jms.test' and run the consumer:
+----------------------------------------------
+
+./bin/kafka-topics --create --zookeeper localhost:2181 --topic jms.test --partitions 1 --replication-factor 1
+
+./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic jms.test
+
+ActiveMQSourceConnector Command:
+--------------------------------
+./bin/connect-standalone etc/kafka/connect-standalone.properties etc/kafka-connect-activemq/ActiveMQSourceConnector.properties etc/kafka/connect-file-sink.properties
+
+Open another terminal:
+----------------------
+cd /opt/confluent-5.5.1
+tail -f test-connect.txt
+
+Steps to produce data:
+----------------------
+1. Now in the CDH web browser open the following link
+   localhost:8161/admin/
+   user: admin
+   password: admin
+2. Then in above options, go to topics option and create topics: 
+   jms.test
+   jms.q
+3. Open click on jms.q
+   Destination: jms.test
+   Queue or Topic: Topic (Dropdown)
+   Message body : type and produce messages and click the send button

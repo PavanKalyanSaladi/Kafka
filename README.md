@@ -57,3 +57,24 @@ Pre-Requirement:- You need an available cluster setup already in the machine.
 
 
 ### Kafka Connect
+There are many connectors in kafka:-
+1. Source Connector - Ingest/Collect data to databases and stream table updates to kakfa topic.
+2. Sink Connector - Deliver data from kafka topic to external systems  such as elasticsearch.
+
+Q) When to use kafka connector, producer & consumer??
+   Kafka connect is typically used to connect external sources to Kafka 
+		i.e. to produce/consume to/from external sources from/to Kafka.
+   Readily available Connectors only ease connecting external sources to Kafka 
+		without requiring the developer to write the low-level code.
+
+For starting a Connector Worker, you call the start script with a properties file:
+	Windows: - $ bin\windows\connect-distributed.bat config\connect-distributed.properties
+	Linux: - $ bin/connect-distributed.sh config/connect-distributed.properties
+
+
+### Practise:-
+We are using Alma Linux distribution in Virtual BOX.
+Requirement:-
+1. Installation of Virtual BOX, WinScP, ALMA Linux.ova distribution file.
+2. Core: 4, Memory: 6GB, Network: Bridged Adapter, Traffic: Allow all
+You can use the VM_BOX folder for files that I have used.

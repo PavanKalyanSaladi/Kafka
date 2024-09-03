@@ -1,0 +1,87 @@
+Kafka-mysql-source-connector:
+-----------------------------
+Download kafka-mysql-connector:
+
+https://dev.mysql.com/downloads/connector/j/5.1.html
+
+After downloading the zip file, unzip it and copy the 'mysql-java-connector' jar files into 'C:\confluent-5.5.1\share\java\kafka-connect-jdbc'
+
+Go to C:/confluent-5.5.1/etc/kafka/connect-standalone.properties:
+-----------------------------------------------------------------
+bootstrap.servers=localhost:9092
+key.converter=org.apache.kafka.connect.json.JsonConverter
+value.converter=org.apache.kafka.connect.json.JsonConverter
+key.converter.schemas.enable=true
+value.converter.schemas.enable=true
+offset.storage.file.filename=/tmp/connect.offsets
+offset.flush.interval.ms=10000
+plugin.path=C:\confluent-5.5.1\share\java\kafka-connect-jdbc
+
+Go to C:/confluent-5.5.1/etc/kafka-connect-jdbc/source-quickstart-sql.properties:
+---------------------------------------------------------------------------------
+Make a copy for source-quickstart-sqlite.properties and name it as source-quickstart-sql.properties
+Now do the following changes in the source-quickstart-sql.properties file
+
+name=test-source-mysql-jdbc-autoincrement
+connector.class=io.confluent.connect.jdbc.JdbcSourceConnector
+tasks.max=1
+connection.url=jdbc:mysql://localhost:3306/tekcrux?user=root&password=root
+mode=incrementing
+incrementing.column.name=rollno
+topic.prefix=test-mysql-
+
+Start the server and zookeeper(if not started):
+-----------------------------------------------
+C:/confluent-5.5.1
+
+bin/zookeeper-server-start.bat ../../etc/kafka/zookeeper.properties
+bin/kafka-server-start.bat ../../etc/kafka/server.properties
+
+Connector Command:
+------------------
+C:\confluent-5.5.1
+
+connect-standalone.bat ../../etc/kafka/connect-standalone.properties ../../etc/kafka-connect-jdbc/source-quickstart-sql.properties ../../etc/kafka/connect-console-sink.properties
+
+
+
+Open another terminal:
+----------------------
+Create topic 'test-mysql-student' and run the consumer:
+-------------------------------------------------------
+C:/confluent-5.5.1
+
+bin/kafka-topics.bat --create --zookeeper localhost:2181 --topic test-mysql-student --partitions 1 --replication-factor 1
+bin/kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic test-mysql-student
+
+Expected output:
+----------------
+{"schema":{"type":"struct","fields":[{"type":"int32","optional":false,"field":"rollno"},{"type":"string","optional":true,"field":"name"},{"type":"double","optional":true,"field":"marks"}],"optional":false,"name":"student"},"payload":{"rollno":2,"name":"Raju","marks":88.0}}
+
+Go to mySQL workbench:
+----------------------
+Execute in mySQL:
+use tekcrux;
+
+CREATE TABLE student (
+    rollno int,
+    name varchar(255),
+    marks double
+);
+
+ALTER TABLE student ADD PRIMARY KEY (rollno);
+ALTER TABLE student MODIFY COLUMN rollno INT auto_increment;
+INSERT INTO student (name, marks) VALUES ('Raju',50);
+
+
+set CLASSPATH=%CLASSPATH%;"F:\Software\All Softwares\confluent-5.5.1\share\java\kafka-connect-jdbc\mysql-connector-java-5.1.49.jar"
+
+echo %CLASSPATH%
+
+ERROR:
+[2024-05-08 19:22:07,604] ERROR Failed to create job for etc/kafka-connect-jdbc/source-quickstart-sql.properties (org.apache.kafka.connect.cli.ConnectStandalone:107)
+[2024-05-08 19:22:07,606] ERROR Stopping after connector error (org.apache.kafka.connect.cli.ConnectStandalone:117)
+java.util.concurrent.ExecutionException: org.apache.kafka.connect.runtime.rest.errors.BadRequestException: Connector configuration is invalid and contains the following 2 error(s):
+Invalid value java.sql.SQLException: No suitable driver found for jdbc:mysql://localhost:3306/tekcrux?user=root&password=root for configuration Couldn't open connection to jdbc:mysql://localhost:3306/tekcrux?user=root&password=root
+Invalid value java.sql.SQLException: No suitable driver found for jdbc:mysql://localhost:3306/tekcrux?user=root&password=root for configuration Couldn't open connection to jdbc:mysql://localhost:3306/tekcrux?user=root&password=root
+You can also find the above list of errors at the endpoint `/connector-plugins/{connectorType}/config/validate`
