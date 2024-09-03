@@ -42,3 +42,18 @@ Q) When Consumer Lack happens??
    When the producers are providing 1000ms data, but consumer taking 10ms data.
    So the period of data retain is 7 days - the data get loss.
    To solve it - Increase the performance/parallism of consumers.
+
+	Run the Jconsole from Java/bin folder and check out the running java applications that displays -
+		performance/parallism, Usgae, Network, Storage etc.,
+
+
+### Conductor
+This is a monitoring tool where you can observe the kafka streaming, topics, cosumers etc:-
+In windows, download the Conductor.exe file and look into it.
+It is an tool where you can produce data, consume data in any topic available or new one.
+You can change the security functions of particular topic hear.
+
+Pre-Requirement:- You need an available cluster setup already in the machine.
+
+
+### Kafka Connect
