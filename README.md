@@ -30,23 +30,27 @@ Step-4: Created my own Producer that produces the WARNING messages package - Pro
 
 We will use JMX Monitoring
 
-Q) What is Controller?
-   Controller is referred to broker. It's duty is to update the metadata information to all nodes. Only one controller in a cluster.
+Q) What is Controller?<br/>
+&emsp;
+   Controller is referred to broker. It's duty is to update the metadata information to all nodes. Only one controller in a cluster. <br/>
+&emsp;
    It monitors brokers, metrics, topics, replicas and so on.
    
-Q) When Under-Replicated scenario comes??
-   Only 2 brokers are available in a 3-Node Cluster
-   Each partition will have a Leader.
+Q) When Under-Replicated scenario comes?? <br/>
+&emsp;
+   Only 2 brokers are available in a 3-Node Cluster <br/>
+&emsp;
+   Each partition will have a Leader. <br/>
+&emsp;
 
 Q) When Consumer Lack happens??<br/>
-&emsp;&emsp;
+&emsp;
    When the producers are providing 1000ms data, but consumer taking 10ms data. <br/>
-&emsp;&emsp;
+&emsp;
    So the period of data retain is 7 days - the data get loss. <br/>
-&emsp;&emsp;
+&emsp;
    To solve it - Increase the performance/parallism of consumers. <br/>
-&emsp;&emsp; <br/>
-&emsp;&emsp;
+&emsp;
 	Run the Jconsole from Java/bin folder and check out the running java applications that displays - <br/>
 &emsp;&emsp;
 		performance/parallism, Usgae, Network, Storage etc.,
@@ -57,7 +61,7 @@ This is a monitoring tool where you can observe the kafka streaming, topics, cos
 In windows, download the Conductor.exe file and look into it. <br/>
 It is an tool where you can produce data, consume data in any topic available or new one. <br/>
 You can change the security functions of particular topic hear. <br/>
-<br/>
+
 Pre-Requirement:- You need an available cluster setup already in the machine.
 
 
@@ -67,26 +71,27 @@ There are many connectors in kafka:-
 2. Sink Connector - Deliver data from kafka topic to external systems  such as elasticsearch.
 
 Q) When to use kafka connector, producer & consumer?? <br/>
-&emsp;&emsp;
+&emsp;
    Kafka connect is typically used to connect external sources to Kafka <br/>
-&emsp;&emsp;&emsp;&emsp;
-		i.e. to produce/consume to/from external sources from/to Kafka. <br/>
 &emsp;&emsp;
+		i.e. to produce/consume to/from external sources from/to Kafka. <br/>
+&emsp;
    Readily available Connectors only ease connecting external sources to Kafka <br/>
-&emsp;&emsp;&emsp;&emsp;
+&emsp;&emsp;
 		without requiring the developer to write the low-level code. <br/><br/>
 
 For starting a Connector Worker, you call the start script with a properties file: <br/>
-&emsp;&emsp;
+&emsp;
 	Windows: - $ bin\windows\connect-distributed.bat config\connect-distributed.properties <br/>
-&emsp;&emsp;
+&emsp;
 	Linux: - $ bin/connect-distributed.sh config/connect-distributed.properties <br/>
 
 
 ### Practise:-
 We are using Alma Linux distribution in Virtual BOX. <br/>
-&emsp;&emsp; 
 Requirement:-
 1. Installation of Virtual BOX, WinScP, ALMA Linux.ova distribution file.
 2. Core: 4, Memory: 6GB, Network: Bridged Adapter, Traffic: Allow all <br/>
+
 You can use the VM_BOX folder for files that I have used.
+1. Follow the Apache Kafka File Connect.txt to perform source & sink connectors. You can Check by producing & consuming data.
