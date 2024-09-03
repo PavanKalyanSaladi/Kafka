@@ -38,21 +38,26 @@ Q) When Under-Replicated scenario comes??
    Only 2 brokers are available in a 3-Node Cluster
    Each partition will have a Leader.
 
-Q) When Consumer Lack happens??
-   When the producers are providing 1000ms data, but consumer taking 10ms data.
-   So the period of data retain is 7 days - the data get loss.
-   To solve it - Increase the performance/parallism of consumers.
-
-	Run the Jconsole from Java/bin folder and check out the running java applications that displays -
+Q) When Consumer Lack happens??<br/>
+&emsp;&emsp;
+   When the producers are providing 1000ms data, but consumer taking 10ms data. <br/>
+&emsp;&emsp;
+   So the period of data retain is 7 days - the data get loss. <br/>
+&emsp;&emsp;
+   To solve it - Increase the performance/parallism of consumers. <br/>
+&emsp;&emsp; <br/>
+&emsp;&emsp;
+	Run the Jconsole from Java/bin folder and check out the running java applications that displays - <br/>
+&emsp;&emsp;
 		performance/parallism, Usgae, Network, Storage etc.,
 
 
 ### Conductor
-This is a monitoring tool where you can observe the kafka streaming, topics, cosumers etc:-
-In windows, download the Conductor.exe file and look into it.
-It is an tool where you can produce data, consume data in any topic available or new one.
-You can change the security functions of particular topic hear.
-
+This is a monitoring tool where you can observe the kafka streaming, topics, cosumers etc:- <br/>
+In windows, download the Conductor.exe file and look into it. <br/>
+It is an tool where you can produce data, consume data in any topic available or new one. <br/>
+You can change the security functions of particular topic hear. <br/>
+<br/>
 Pre-Requirement:- You need an available cluster setup already in the machine.
 
 
@@ -61,20 +66,27 @@ There are many connectors in kafka:-
 1. Source Connector - Ingest/Collect data to databases and stream table updates to kakfa topic.
 2. Sink Connector - Deliver data from kafka topic to external systems  such as elasticsearch.
 
-Q) When to use kafka connector, producer & consumer??
-   Kafka connect is typically used to connect external sources to Kafka 
-		i.e. to produce/consume to/from external sources from/to Kafka.
-   Readily available Connectors only ease connecting external sources to Kafka 
-		without requiring the developer to write the low-level code.
+Q) When to use kafka connector, producer & consumer?? <br/>
+&emsp;&emsp;
+   Kafka connect is typically used to connect external sources to Kafka <br/>
+&emsp;&emsp;&emsp;&emsp;
+		i.e. to produce/consume to/from external sources from/to Kafka. <br/>
+&emsp;&emsp;
+   Readily available Connectors only ease connecting external sources to Kafka <br/>
+&emsp;&emsp;&emsp;&emsp;
+		without requiring the developer to write the low-level code. <br/><br/>
 
-For starting a Connector Worker, you call the start script with a properties file:
-	Windows: - $ bin\windows\connect-distributed.bat config\connect-distributed.properties
-	Linux: - $ bin/connect-distributed.sh config/connect-distributed.properties
+For starting a Connector Worker, you call the start script with a properties file: <br/>
+&emsp;&emsp;
+	Windows: - $ bin\windows\connect-distributed.bat config\connect-distributed.properties <br/>
+&emsp;&emsp;
+	Linux: - $ bin/connect-distributed.sh config/connect-distributed.properties <br/>
 
 
 ### Practise:-
-We are using Alma Linux distribution in Virtual BOX.
+We are using Alma Linux distribution in Virtual BOX. <br/>
+&emsp;&emsp; 
 Requirement:-
 1. Installation of Virtual BOX, WinScP, ALMA Linux.ova distribution file.
-2. Core: 4, Memory: 6GB, Network: Bridged Adapter, Traffic: Allow all
+2. Core: 4, Memory: 6GB, Network: Bridged Adapter, Traffic: Allow all <br/>
 You can use the VM_BOX folder for files that I have used.
