@@ -1,0 +1,28 @@
+KSQL INSTALLATION STEPS [Linux OS]
+
+1. SSH 
+2. Java Runtime Environment
+    -> Minimum required version is Java 8
+    -> java -version
+3. Download Confluent Platform from Confluent website
+   -> https://www.confluent.io/download/
+   -> Confluent Platform 5.4 or later (6.0.0 is the latest version)
+   -> Download confluent-5.5.1 version
+4. Unzip/Untar the downloaded application
+    -> tar xvfz confluent-5.5.1……
+5. sudo mv confluent-5.5.1 /opt
+6. cd /opt
+7. ll
+8. sudo ln –s confluent-5.5.1 confluent
+9. ls /opt/confluent/bin
+10. export PATH=${PATH}:/opt/confluent/bin
+11. kafka-topics
+12. export CONFLUENT_HOME=/opt/confluent
+13. curl -1 –L https://cnfl.io/cli | sh -s -- -b /opt/confluent/bin
+14. confluent
+15. confluent local status(if not started type below command)
+16. confluent local services ksql-server start
+17. ksql
+
+
+curl -sL --http1 https://cnfl.io/cli | sh -s -- -b /opt/confluent/bin

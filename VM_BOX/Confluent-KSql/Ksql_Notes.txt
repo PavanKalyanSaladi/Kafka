@@ -1,0 +1,352 @@
+Topics:
+-------
+1. Use cases of KSQL
+2. Creating streams, tables
+3. Data types
+4. Operations on streams and tables
+5. Joins, Windows
+
+Introduction:
+-------------
+* A stream in Kafka is the full history of events from the start of time.
+* Messages in a stream:
+  - constantly arriving and being added to the topic
+  - are independent and form a never-ending sequence
+  - arrive in a time ordered manner in the stream
+  - do not have any relation with each other
+  - can be processed independently
+* Examples:
+  - Web site click stream
+  - orders arriving
+  - twitter
+* Note:
+  - KSQL 5.3 and earlier
+       select name, countrycode from users_stream;
+  - KSQL on ksqlDB 5.4 onwards
+       select name, countrycode from users_stream emit changes;
+
+Create a topic 'sample' in the separate shell:
+---------------------------------------------
+kafka-topics --create --zookeeper localhost:2181 --topic sample --partitions 1 --replication-factor 1
+
+For latest versions of confluent:
+kafka-topics --create --bootstrap-server localhost:9092 --topic sample --partitions 1 --replication-factor 1
+
+Now start the producer and produce the data to 'sample' topic:
+-------------------------------------------------------------
+$ kafka-console-producer --broker-list localhost:9092 --topic sample
+
+For latest versions of confluent:
+kafka-console-producer --bootstrap-server localhost:9092 --topic sample
+
+1. Use cases of KSQL:
+---------------------
+Several KSQL uses cases, like data exploration, streaming ETL, anomaly detection, and real-time monitoring.
+
+2. Creating streams, tables:
+----------------------------
+Stream :
+========
+* A stream is an unbounded sequence of structured data ("facts").
+* For example: 
+  -> We could have a stream of financial transactions such as "Alice sent $100 to Bob, then Charlie sent $50 to Bob". 
+  -> Facts in a stream are immutable, which means new facts can be inserted to a stream, but existing facts can never be updated or deleted. 
+  -> Streams can be created from an Apache Kafka topic or derived from an existing stream. A stream’s underlying data is durably stored (persisted) within a Kafka topic on the Kafka brokers.
+
+Creating Streams:
+=================
+create stream user_stream(name varchar, countrycode varchar) with (kafka_topic='sample', value_format='DELIMITED');
+
+show streams;
+    (or)
+list streams;
+
+describe user_stream;
+
+describe extended user_stream;
+
+DESCRIBE ip_sum EXTENDED;  -- Latest version
+
+Now produce the data to 'sample' topic:
+--------------------------------------
+Alice,US
+Bob,GB
+Carloe,AU
+Tom,UK
+John,IT
+
+select name,countrycode from user_stream emit changes;
+
+Again produce the data:
+-----------------------
+Tom,UK
+John,IT
+
+set 'auto.offset.reset'='earliest';
+
+select name,countrycode from user_stream emit changes;
+
+Table :
+=======
+* A table is a view of a stream, or another table, and represents a collection of evolving facts. 
+* For example: 
+  -> We could have a table that contains the latest financial information such as "Bob's current account balance is $150". 
+  -> It is the equivalent of a traditional database table but enriched by streaming semantics such as windowing. 
+  -> Facts in a table are mutable, which means new facts can be inserted to the table, and existing facts can be updated or deleted. 
+  -> Tables can be created from a Kafka topic or derived from existing streams and tables. 
+  -> In both cases, a table's underlying data is durably stored (persisted) within a Kafka topic on the Kafka brokers.
+
+Creating Tables:
+================ 
+Start the producer with topic "country-csv"
+-------------------------------------------
+kafka-console-producer --broker-list localhost:9092 --topic country-csv --property "parse.key=true" --property "key.separator=:"
+
+--> create a table
+CREATE TABLE COUNTRYTABLE_nice (countrycode VARCHAR, countryname VARCHAR) WITH (KAFKA_TOPIC='country-csv', VALUE_FORMAT='DELIMITED',KEY='countrycode');
+Data: IN:IN,INDIA
+CREATE TABLE COUNTRYTABLE_COFORGE (countrycode VARCHAR primary key, countryname VARCHAR) WITH (KAFKA_TOPIC='country-csv', VALUE_FORMAT='DELIMITED');  --- Confluent 7.1 version
+
+select * from COUNTRYTABLE_nice emit changes;
+
+Produce the data as mentioned below through console producer:
+-------------------------------------------------------------
+IN:IN,India
+US:US,America
+GE:GE,Germany
+US:US,United States
+
+select countrycode, countryname from countrytable where countrycode='US' emit changes;
+
+show tables;
+
+describe COUNTRYTABLE;
+
+describe extended COUNTRYTABLE; 7.1 versions confluent
+
+3. Data types:
+---------------
+- BOOLEAN
+- INTEGER 
+- BIGINT
+- DOUBLE
+- VARCHAR 
+
+4. Operations on streams and tables
+------------------------------------
+--> default to beginning of time
+SET 'auto.offset.reset'='earliest';
+
+--> create a stream
+create stream users (name VARCHAR, countrycode VARCHAR) 
+WITH (KAFKA_TOPIC='users', VALUE_FORMAT='DELIMITED');
+
+--> create another stream
+create stream users2 as select * from users;
+
+--> Remove streams if they exists already
+drop stream if exists users2;
+drop stream if exists users ;
+
+--> create a stream 
+CREATE STREAM userprofile (userid INT, firstname VARCHAR, lastname VARCHAR, countrycode VARCHAR, rating DOUBLE) WITH (VALUE_FORMAT = 'JSON', KAFKA_TOPIC = 'USERPROFILE');
+
+Produce the data:
+------------------
+{"userid":1,"firstname":"Jerry","lastname":"Hortop","countrycode":"US","rating":4.3}
+{"userid":2,"firstname":"Licha","lastname":"Pring","countrycode":"GE","rating":2.9}
+{"userid":3,"firstname":"Jolene","lastname":"Sharpus","countrycode":"FR","rating":1.9}
+{"userid":4,"firstname":"Glenda","lastname":"McComish","countrycode":"IN","rating":4.8}
+{"userid":5,"firstname":"Carlina","lastname":"MacKnockiter","countrycode":"UK","rating":2.3}
+{"userid":6,"firstname":"Donall","lastname":"Strute","countrycode":"AU","rating":3.6}
+{"userid":7,"firstname":"Donalld","lastname":"Strutie","countrycode":"AU","rating":3.8}
+
+--> create stream from another stream
+create stream user_profile_pretty_coforge as 
+select firstname + ' ' 
++ ucase(lastname) 
++ ' from ' + countrycode 
++ ' has a rating of ' + cast(rating as varchar) + ' stars. ' 
++ case when rating < 2.5 then 'Poor'
+       when rating between 2.5 and 4.2 then 'Good'
+       else 'Excellent' 
+   end as description
+from userprofile;
+
+select * from user_profile_pretty emit changes;
+
+describe extended user_profile_pretty;
+
+5. Joins and Windows:
+---------------------
+Joins:
+------
+You can join streams and tables in these ways:
+
+1. Join multiple streams to create a new stream.
+2. Join multiple tables to create a new table.
+3. Join multiple streams and tables to create a new stream.
+
+Creating a stream by joining a stream and a table:
+--------------------------------------------------
+create stream up_joined as 
+select up.firstname 
++ ' ' + ucase(up.lastname) 
++ ' from ' + ct.countryname
++ ' has a rating of ' + cast(rating as varchar) + ' stars.' as description 
+from USERPROFILE up 
+left join COUNTRYTABLE ct on ct.countrycode=up.countrycode;
+
+show streams;
+
+Data Formats:
+-------------
+* KSQL supports 3 serialization mechanisms
+  -> comma-separated(Delimited)
+  -> JSON
+  -> AVRO
+1. CSV
+======
+Create a topic 'complaints_csv' in the separate shell:
+-------------------------------------------------------
+kafka-topics --create --zookeeper localhost:2181 --topic 'complaints_csv' --partitions 1 --replication-factor 1
+
+Now start the producer and produce the data to 'complaints_csv' topic:
+-------------------------------------------------------------
+Kafka-console-producer --broker-list localhost:9092 --topic complaints_csv
+
+create stream complaints_csv(customer_name VARCHAR, complaint_type VARCHAR, trip_cost DOUBLE, new_customer BOOLEAN) with (VALUE_FORMAT = 'DELIMITED', KAFKA_TOPIC = 'complaints_csv');
+
+select * from complaints_csv;
+
+Alice, Late arrival, 43.12, true
+Alice, Bob and Carole, Bad driver, 43.10, true
+
+
+2. JSON:
+========
+Create a topic 'complaints_json' in the separate shell:
+-------------------------------------------------------
+kafka-topics --create --zookeeper localhost:2181 --topic 'complaints_json' --partitions 1 --replication-factor 1
+
+Now start the producer and produce the data to 'complaints_json' topic:
+-------------------------------------------------------------
+Kafka-console-producer --broker-list localhost:9092 --topic complaints_json
+
+create stream complaints_json(customer_name VARCHAR, complaint_type VARCHAR, trip_cost DOUBLE, new_customer BOOLEAN) with (VALUE_FORMAT = 'JSON', KAFKA_TOPIC = 'complaints_json');
+
+select * from complaints_json emit changes;
+
+{"customer_name":"Alice, Bob and Carole","complaint_type":"Bad driver", "trip_cost":22.43,"new_customer":true} 
+{"customer_name":"Bad data","complaint_type":"Bad driver", "trip_cost":22.40,"new_customer":ShouldbeBoolean}
+
+
+Window Operations:
+
+--> create a topic 'pageviews' and start the producer
+
+kafka-topics --create --zookeeper localhost:2181 --topic pageviews --partitions 1 --replication-factor 1
+kafka-console-producer --broker-list localhost:9092 --topic pageviews
+
+--> Create a stream, named pageviews, from the pageviews Kafka topic, specifying the value_format of DELIMITED.
+
+CREATE STREAM pageviews (viewtime bigint, userid varchar, pageid varchar, regionid varchar, gender varchar) WITH
+(kafka_topic='pageviews', value_format='DELIMITED');
+
+Hopping Window:
+----------------
+
+SELECT regionid, COUNT(*) FROM pageviews
+  WINDOW HOPPING (SIZE 10 SECONDS, ADVANCE BY 5 SECONDS)
+  WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
+  GROUP BY regionid
+  EMIT CHANGES;
+
+
+set 'auto.offset.reset'='earliest';
+
+Produce the data in the pageviews topic:
+----------------------------------------
+173782,user1,page_1,Region_4,Female
+183733,user2,page_2,Region_2,Male
+182388,user3,page_3,Region_6,Female
+187485,user4,page_2,Region_4,Male
+182389,user5,page_5,Region_6,Female
+187485,user6,page_4,Region_3,Male
+186231,user7,page_2,Region_6,Female
+186231,user11,page_3,Region_6,Female
+129389,user8,page_3,Region_5,Female
+193526,user9,page_1,Region_6,Male
+187486,user10,page_4,Region_1,Female
+
+Session Window:
+---------------
+
+SELECT regionid, COUNT(*) FROM pageviews
+  WINDOW SESSION (6 SECONDS)
+  GROUP BY regionid
+  EMIT CHANGES;
+
+186231,user7,page_2,Region_6,Female
+186231,user11,page_3,Region_6,Female
+129389,user8,page_3,Region_5,Female
+193526,user9,page_1,Region_6,Male
+187486,user10,page_4,Region_1,Female
+187486,user10,page_4,Region_1,Female
+187486,user10,page_4,Region_1,Female
+187486,user10,page_4,Region_1,Female
+187486,user10,page_4,Region_1,Female
+
+Wait for 6 - 7 seconds 
+
+187486,user10,page_4,Region_1,Female
+187486,user10,page_4,Region_1,Female
+186231,user11,page_3,Region_6,Female
+
+Tumbling Window:
+---------------
+SELECT regionid, count(*) FROM pageviews
+  WINDOW TUMBLING (SIZE 10 SECONDS) GROUP BY regionid
+  EMIT CHANGES;
+
+187486,user10,page_4,Region_1,Female
+187486,user10,page_4,Region_1,Female
+187486,user10,page_4,Region_1,Female
+193526,user9,page_1,Region_6,Male
+193526,user9,page_1,Region_6,Male
+193526,user9,page_1,Region_6,Male
+193526,user9,page_1,Region_6,Male
+
+wait for 10 seconds and again produce
+
+193526,user9,page_1,Region_6,Male
+193526,user9,page_1,Region_6,Male
+187486,user10,page_4,Region_1,Female
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
