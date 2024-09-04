@@ -12,11 +12,13 @@ Step-2: Worked on the 3.6.1v to create a multi node cluster by configuring serve
 &emsp;&emsp;
 		Follow the Kafka_Installation (for referrece) need to be done in config/ <br/>
 &emsp;&emsp;
-		```>kafka-server-start.bat ..\..\config\server.properties``` <br/>
+		```>bin\windows\zookeeper-server-start.bat config\zookeeper.properties```<br/>
 &emsp;&emsp;
-		```>kafka-server-start.bat ..\..\config\server1.properties``` <br/>
+		```>bin\windows\kafka-server-start.bat config\server.properties``` <br/>
 &emsp;&emsp;
-		```>kafka-server-start.bat ..\..\config\server1.properties```
+		```>bin\windows\kafka-server-start.bat config\server1.properties``` <br/>
+&emsp;&emsp;
+		```>bin\windows\kafka-server-start.bat config\server2.properties```
 
 Step-3: Run the Producer(Sync, Async, FF) and Consumer to understand the streaming.
 
@@ -100,3 +102,31 @@ You can use the VM_BOX folder for files that I have used.
 
 2. Confluent-KSQL <br/>
 &emsp;	Follow the Confluent-Installation-Steps.txt to create a KSQL-server using confluent bin.
+
+
+### Working on Stateless & Stateful components
+Use the Kafka Version - Kafka_2.11-1.1.1 to perform stateless and stateful operations <br/>
+Follow the below steps to setup the Single Node cluster:- <br/>
+&emsp;
+		```>bin\windows\zookeeper-server-start.bat config\zookeeper.properties```<br/>
+&emsp;
+		```>bin\windows\kafka-server-start.bat config\server.properties``` <br/>
+&emsp;
+		```>bin\windows\kafka-topics.bat --create --topic wordcount-input --zookeeper localhost:2181 --partitions 1 --replication-factor 1```<br/>
+&emsp;
+		```>bin\windows\kafka-topics.bat --create --topic wordcount-output --zookeeper localhost:2181 --partitions 1 --replication-factor 1```<br/>
+&emsp;
+		```>bin\windows\kafka-console-producer.bat --topic wordcount-input --broker-list localhost:9092``` <br/>
+&emsp;	<br/>
+Ex:- Stateful Application <br/>
+Now we are producing data from console and the java application com.tekcrux.kafka.streams <br/>
+The WordCount.java streams the data from producer to consumer based on the date transmission. <br/>
+The WordCountConsumer.java is to consume the data that is streaming from producer. <br/>
+Run the WordCountConsumer.java & WordCount.java applications and produce the date from producer(console) like <br/>
+&emsp;&emsp; hadoop hadOOP HadooP <br/>
+&emsp;&emsp; kafka KAFKA Kafka <br/>
+&emsp;&emsp; Hadoop HADOOP <br/>
+######Output:- <br/>
+key= hadoop | value = 3		<br/>
+key= kafka | value = 3		<br/>
+key= hadoop | value = 5		<br/>
