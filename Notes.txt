@@ -302,3 +302,34 @@ COMMIT & OFFSET: ---
 	3. Asynchronous Commit								-	commitAsync() -> It won't wait for the response of commit
 	4. Combining Synchronous & Asynchronous Commits		-	commitAsync() - > To consume faster & commitSync() -> Before closing the offset
 	5. Commit Specified Offset							-	You can specify a particular number to maintain the specific number of commit
+	
+
+
+04/09/24
+--------------------------------------------------
+
+Q) Types of Stream Processing??
+	1. Stateless - It does not require the server to retain the server information or session details.
+	2. Stateful - It require server to save the status and session information.
+
+Q) Types of windowing operations??
+	1. Tumbling window	(params - window length)
+		Here window lenght is always fixed based on the data generated, sliding interval is 0.
+	2. Hoping window	(params - window length, sliding/advance interval)
+		Here window lenght is always fixed based on the data generated, sliding interval is more than 0.
+	3. Session window	(params - window length, sliding/advance interval)
+		Here window length is not fixed, because it is based on activity blocks.
+
+Note: -
+1. Stream Processing -> src - kafka, dest - kafka
+2. Producer Application -> src - can be anything, dest- kafka
+3. Consumer Application -> src - kafka, dest - can be anything
+
+Sream Processing Concepts: -
+	It is similar to any time of data processing - we write code that receives data, does something with data
+	a few transformations, aggregations, etc., - and then place the result somewhere.
+	key_conceps:-
+	1. Time
+	2. State
+	3. Stream-Table Duality	(Stream Data is Immutable)
+	4. Time Windows
