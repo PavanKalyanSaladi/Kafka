@@ -94,4 +94,9 @@ Requirement:-
 2. Core: 4, Memory: 6GB, Network: Bridged Adapter, Traffic: Allow all <br/>
 
 You can use the VM_BOX folder for files that I have used.
-1. Follow the Apache Kafka File Connect.txt to perform source & sink connectors. You can Check by producing & consuming data.
+1. Kafka-Connect <br/>
+&emsp;	Follow the Apache-Kafka-File-Connect.txt to perform source & sink connectors. <br/>
+&emsp;	You can Check by producing & consuming data with source and sink connector.
+
+2. Confluent-KSQL <br/>
+&emsp;	Follow the Confluent-Installation-Steps.txt to create a KSQL-server using confluent bin.
