@@ -24,7 +24,7 @@ Step-3: Run the Producer(Sync, Async, FF) and Consumer to understand the streami
 
 Step-4: Created my own Producer that produces the WARNING messages package - ProducerTest in kafkaJava. <br/>
 &emsp;&emsp;	You can consume through console by executing: <br/>
-&emsp;&emsp;	```bin\kafka-console-consumer.bat --bootstrap-server loclahost:9093 --topic topic-name```
+&emsp;&emsp;	```bin\kafka-console-consumer.bat --bootstrap-server localhost:9093 --topic topic-name```
 
 
 
@@ -130,3 +130,59 @@ Run the WordCountConsumer.java & WordCount.java applications and produce the dat
 key= hadoop | value = 3		<br/>
 key= kafka | value = 3		<br/>
 key= hadoop | value = 5		<br/>
+
+
+### Working on KSQL-DB
+Start the VM created (Confluent-KSQL) and run the follawing again to make it up <br/>
+&emsp;
+		```>bin\windows\zookeeper-server-start.bat config\zookeeper.properties```<br/>
+&emsp;
+		```>bin\windows\kafka-server-start.bat config\server.properties``` <br/>
+&emsp;
+
+'Referrece File - Ksql_Notes.txt'										  <br/>
+Create a shell file and run this (root) whenever new terminal opens:- <br/>
+'#!/bin/bash										<br/>
+ export CONFLUENT_HOME=/opt/confluent				<br/>
+ export PATH=${PATH}:$CONFLUENT_HOME/bin			<br/>
+ confluent											<br/>
+ confluent local services ksql-server status		<br/>
+ confluent local services ksql-server start			<br/>
+'
+Now let's perform streaming using topic
+1. Create a topic to stream it in KSQL				<br/>
+&emsp; ```kafka-topics --create --zookeeper localhost:2181 --topic sample --partitions 1 --replication-factor 1``` <br/>
+&emsp; 
+	You can produce some data by running producer	<br/>
+&emsp;
+	```kafka-console-producer --bootstrap-server localhost:9092 --topic sample```
+
+2. Now connect to DB by running []# ksql				<br/>
+&emsp;
+	```>show topics;```				<br/>
+&emsp;
+	Run the below command to check the data that is produced to topic	<br/>
+&emsp;
+	```>print 'sample';``` 			<br/>
+&emsp;
+	You can view the data in key, value from producer.		<br/>
+&emsp;
+
+Now let's create a stream in KSQL and observer the data from it.	<br/>
+1. Create a stream in KSQL			<br/>
+&emsp;
+	```create stream user_stream(name varchar, countrycode varchar) with (kafka_topic='sample', value_format='DELIMITED');``` <br/>
+&emsp;
+	```show streams;``` <br/>
+&emsp;
+	```select * from USER_STREAM emit changes;```
+2. Now the data you produced from sample topics it is getting streamed. <br/>
+&emsp;
+	```kafka-console-producer --broker-list localhost:9092 --topic sample```` <br/>
+&emsp;
+	```>Neeraj, India``` <br/>
+&emsp;
+	```>Stephen Curry, France``` <br/>
+&emsp;
+	```>ABCD, ``` <br/>
+&emsp;
