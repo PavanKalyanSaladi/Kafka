@@ -172,7 +172,7 @@ Now let's create a stream in KSQL and observer the data from it.	<br/>
 	```select * from USER_STREAM emit changes;```
 2. Now the data you produced from sample topics it is getting streamed. <br/>
 &emsp;
-	```kafka-console-producer --broker-list localhost:9092 --topic sample```` <br/>
+	```kafka-console-producer --broker-list localhost:9092 --topic sample``` <br/>
 &emsp;
 	```>Neeraj, India``` <br/>
 &emsp;
