@@ -180,3 +180,5 @@ Now let's create a stream in KSQL and observer the data from it.	<br/>
 &emsp;
 	```>ABCD, ``` <br/>
 &emsp;
+
+Exercise:- Follow the Ksql_Notes.txt file and practise the rest commands
