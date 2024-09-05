@@ -99,7 +99,6 @@ You can use the VM_BOX folder for files that I have used.
 1. Kafka-Connect <br/>
 &emsp;	Follow the Apache-Kafka-File-Connect.txt to perform source & sink connectors. <br/>
 &emsp;	You can Check by producing & consuming data with source and sink connector.
-
 2. Confluent-KSQL <br/>
 &emsp;	Follow the Confluent-Installation-Steps.txt to create a KSQL-server using confluent bin.
 
@@ -117,7 +116,7 @@ Follow the below steps to setup the Single Node cluster:- <br/>
 		```>bin\windows\kafka-topics.bat --create --topic wordcount-output --zookeeper localhost:2181 --partitions 1 --replication-factor 1```<br/>
 &emsp;
 		```>bin\windows\kafka-console-producer.bat --topic wordcount-input --broker-list localhost:9092``` <br/>
-&emsp;	<br/>
+
 Ex:- Stateful Application <br/>
 Now we are producing data from console and the java application com.tekcrux.kafka.streams <br/>
 The WordCount.java streams the data from producer to consumer based on the date transmission. <br/>
@@ -138,8 +137,6 @@ Start the VM created (Confluent-KSQL) and run the follawing again to make it up 
 		```>bin\windows\zookeeper-server-start.bat config\zookeeper.properties```<br/>
 &emsp;
 		```>bin\windows\kafka-server-start.bat config\server.properties``` <br/>
-&emsp;
-
 'Referrece File - Ksql_Notes.txt'										  <br/>
 Create a shell file and run this (root) whenever new terminal opens:- <br/>
 '#!/bin/bash										<br/>
@@ -156,7 +153,6 @@ Now let's perform streaming using topic
 	You can produce some data by running producer	<br/>
 &emsp;
 	```kafka-console-producer --bootstrap-server localhost:9092 --topic sample```
-
 2. Now connect to DB by running []# ksql				<br/>
 &emsp;
 	```>show topics;```				<br/>
@@ -166,8 +162,6 @@ Now let's perform streaming using topic
 	```>print 'sample';``` 			<br/>
 &emsp;
 	You can view the data in key, value from producer.		<br/>
-&emsp;
-
 Now let's create a stream in KSQL and observer the data from it.	<br/>
 1. Create a stream in KSQL			<br/>
 &emsp;
