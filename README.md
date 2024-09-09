@@ -190,4 +190,14 @@ Follow the steps mentioned in the kraft folder and	<br/>
 
 ### Prometheus & Grafana
 cd P & G	<br/>
-Follow the steps of KAFKA SINGLE NODE.txt to bring up a single node cluster.
+Bring up a single node cluster using KAFKA SINGLE NODE.txt	<br/>
+Requiremens: -	<br/>
+```Java 11```	<br/>
+```Kafka 2.12_3.6.1```	<br/>
+Follow the steps mentioned in KAFKA SINGLE NODE.txt and setup Prometheus & Grafana.	<br/>
+Use the ID:- ```11962``` to use the metrix template while creating a new dashboard in Grafana.
+
+
+### Kafka security
+Trust Store - It will remain the same for both client and server.
+KeyStore - It will be different to both client and server also it varies on client ans server. It is like a private key
