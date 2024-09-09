@@ -1,0 +1,244 @@
+ 3 NODE APACHE KAFKA KRAFT CLUSTER
+
+
+STEP 1 : UPDATE THE HOSTNAME IN EACH MACHINE LIKE BELOW.
+ 
+[root@localhost ~]# vi /etc/hosts
+
+[root@localhost ~]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+192.168.0.129 server1.kafka.com
+192.168.0.130 server2.kafka.com
+192.168.0.131 server3.kafka.com
+
+STEP 2 : DISABLE SELINUX
+
+          vi /etc/selinux/config
+
+            SELINUX=disabled
+
+STEP 3 : DISABLE FIREWALL
+
+         systemctl stop firewalld
+         systemctl disable firewalld
+		 [root@localhost ~]# systemctl status  firewalld
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor >
+   Active: inactive (dead)
+     Docs: man:firewalld(1)
+
+
+STEP 4 : INSTALL NTP
+
+     
+   dnf install chrony
+   systemctl enable chronyd
+ 
+   vi /etc/chrony.conf    (add this line -        allow 192.168.1.0/24)
+                                                                               
+   systemctl restart chronyd
+   firewall-cmd --permanent --add-service=ntp
+   firewall-cmd --reload
+   
+   chronyc sources
+
+STEP 5 : REBOOT THE MACHINES (reboot (or) init 6)
+
+         init 6
+
+NOTE: IF THE HOSTNAME IS NOT CHANGED AFTER REBOOT, RUN THIS COMMAND TO SET REQUIRED HOSTNAME 
+               -  hostnamectl set-hostname server3.kafka.com
+               -   hostname
+STEP 6 : ONCE REBOOT IS DONE, LOGIN IN ALL MACHINES AND PERFORM PASSWORDLESS SSH PROCESS.
+
+       ssh-keygen -t rsa      (PRESS ENTER 4 TIMES)
+       cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+       ssh-copy-id root@<hostname>     (IN server1.kafka.com, GIVE "server2.kafka.com and server3.kafka.com"  FQDN  IN PLACE OF HOSTNAME & type YES and enter password tekcrux@123)
+       ssh <hostname>    (  ssh server1.kafka.com  ,    ssh server2.kafka.com  ,    ssh server3.kafka.com  )
+       exit
+       ssh-copy-id root@server1.kafka.com 
+	   ssh-copy-id root@server2.kafka.com
+       ssh-copy-id root@server3.kafka.com
+
+ssh-copy-id root@server2.kafka.com
+
+Using this command try to check if you are able to connect without password with each other servers:
+
+ssh server1.kafka.com
+
+ssh server2.kafka.com
+
+ssh server3.kafka.com
+
+
+
+[root@kafka1 kafka]# yum -y install java-11-openjdk-devel
+
+[root@kafka1 kafka]# update-alternatives --config java
+
+
+[root@server1 ~]# ls
+anaconda-ks.cfg  initial-setup-ks.cfg
+ 
+INITIALLY YOU HAVE TO DO ALL THE PREDEFINED STEPS LIKE etc/hosts, selinux , firewalls, SSH...THEN RUN BELOW STEPS IN ALL 3 MACHINES..
+                                                                                                                                                       
+[root@server1 ~]# mkdir -p /opt/kafka
+
+[root@server1 ~]# chmod -R 777 /opt/kafka
+
+
+DOWNLOAD APACHE KAFKA FROM LINK : https://kafka.apache.org/downloads
+
+[root@server1 ~]# cd /opt/kafka/
+[root@server1 kafka]# wget  https://archive.apache.org/dist/kafka/3.6.1/kafka_2.12-3.6.1.tgz
+
+[root@server1 kafka]# tar -xzf  
+
+[root@server1 kafka_2.12-3.6.1]# pwd
+/opt/kafka/kafka_2.12-3.6.1
+
+[root@server1 kafka_2.12-3.6.1]# ls
+bin  config  libs  LICENSE  licenses  logs  NOTICE  site-docs
+
+[root@server1 kafka_2.12-3.6.1]# cd config/
+[root@server1 config]# ls
+connect-console-sink.properties    connect-file-sink.properties    connect-mirror-maker.properties  kraft                server.properties       zookeeper.properties
+connect-console-source.properties  connect-file-source.properties  connect-standalone.properties    log4j.properties     tools-log4j.properties
+connect-distributed.properties     connect-log4j.properties        consumer.properties              producer.properties  trogdor.conf
+
+[root@server1 config]# cd kraft/
+[root@server1 kraft]# ls
+  broker.properties  controller.properties    server.properties
+
+[root@server1 kraft]# pwd
+/opt/kafka/kafka_2.12-3.6.1/config/kraft
+
+BELOW I AM CHANGING IN SERVER.PROPERTIES BECAUSE I ASSIGNED "process.roles = broker, controller" in all 3 machines..
+
+If process.roles is set to broker, the server acts as a broker.
+If process.roles is set to controller, the server acts as a controller.
+If process.roles is set to broker,controller, the server acts as both a broker and a controller.
+
+IN SERVER1
+
+######  vi server.properties in server1 ##########
+
+process.roles=broker,controller
+node.id=1
+controller.quorum.voters=1@server1.kafka.com:9093,2@server2.kafka.com:9093,3@server3.kafka.com:9093
+listeners=PLAINTEXT://server1.kafka.com:9092,CONTROLLER://server1.kafka.com:9093
+inter.broker.listener.name=PLAINTEXT
+advertised.listeners=PLAINTEXT://server1.kafka.com:9092
+controller.listener.names=CONTROLLER
+log.dirs=/data/kraft-combined-logs
+######################################################3
+####################
+********************************************************************
+NOTE 1 : if u want to use a "node" as a broker then makes changes in broker.properties like below..
+
+vi broker.properties
+
+# The role of this server. Setting this puts us in KRaft mode
+process.roles=broker
+
+# The node id associated with this instance's roles
+node.id=1
+
+###Here provide controller.quorum.voters - you have to give the list of all controllers only..
+
+# The connect string for the controller quorum
+controller.quorum.voters=2@server2.kafka.com:9093,3@server3.kafka.com:9093
+
+#     listeners = listener_name://host_name:port
+#   EXAMPLE:
+#     listeners = PLAINTEXT://your.host.name:9092
+listeners=PLAINTEXT://server1.kafka.com:9092
+
+# Name of listener used for communication between brokers.
+inter.broker.listener.name=PLAINTEXT
+
+# Listener name, hostname and port the broker will advertise to clients.
+# If not set, it uses the value for "listeners".
+advertised.listeners=PLAINTEXT://server1.kafka.com:9092
+
+controller.listener.names=CONTROLLER
+
+log.dirs=/data/kraft-combined-logs
+*************************************************
+NOTE 2: if u want to use a "node" as a controller then makes changes in controller.properties like below..
+
+vi controller.properties
+
+# The role of this server. Setting this puts us in KRaft mode
+process.roles=controller
+
+# The node id associated with this instance's roles
+node.id=1
+
+
+# The connect string for the controller quorum
+###Here provide controller.quorum.voters - you have to give the list of all controllers only..
+controller.quorum.voters=1@server1.kafka.com:9093,2@server2.kafka.com:9093,3@server3.kafka.com:9093
+
+
+#   EXAMPLE:
+#     listeners = PLAINTEXT://your.host.name:9092
+listeners=CONTROLLER://server1.kafka.com:9093
+
+controller.listener.names=CONTROLLER
+
+log.dirs=/data/kraft-combined-logs
+
+#####################################################
+***********************************************************
+
+
+CREATE DATA DIRECTORY AND GIVE FULL PERMISSIONS IN ALL NODES
+[root@server1 ~]# mkdir /data
+[root@server1 ~]# chmod -R 777 /data
+
+CREATE RANDOM uuid in server1 AND EXPORT the same uuid to server2 and server3
+
+[root@server1 kafka_2.12-3.6.1]#  KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
+[root@server1 kafka_2.12-3.6.1]# echo $KAFKA_CLUSTER_ID
+ewV8bga3TqCu1ouJQfw-eg
+
+[root@server2 kafka_2.12-3.6.1]#  export KAFKA_CLUSTER_ID="ewV8bga3TqCu1ouJQfw-eg"
+[root@server3 kafka_2.12-3.6.1]#  export KAFKA_CLUSTER_ID="ewV8bga3TqCu1ouJQfw-eg"
+
+  export $KAFKA_CLUSTER_ID="C1b3RaI5SwCES-pSmH1Prw"
+
+NOW FORMAT LOGS USING CLUSTER_ID IN ALL 3 MACHINES..
+  
+[root@server1 kafka_2.12-3.6.1]# ./bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c /opt/kafka/kafka_2.12-3.6.1/config/kraft/server.properties
+Formatting /data/kraft-combined-logs with metadata.version 3.6-IV2.
+
+[root@server2 kafka_2.12-3.6.1]# ./bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c /opt/kafka/kafka_2.12-3.6.1/config/kraft/server.properties
+Formatting /data/kraft-combined-logs with metadata.version 3.6-IV2.
+
+....DO THE ABOVE FORMAT STEP  ON SERVER3 ALSO...
+
+
+NOW START THE KAFKA SEVER IN ALL 3 SERVERS..
+
+
+[root@server2 kafka_2.12-3.6.1]# ./bin/kafka-server-start.sh -daemon  config/kraft/server.properties
+
+[root@server1 bin]# ps -ef | grep kafka
+
+[root@server1 kafka_2.12-3.6.1]# ./bin/kafka-topics.sh --bootstrap-server server1.kafka.com:9092 --list
+__consumer_offsets
+[root@server1 kafka_2.12-3.6.1]# ./bin/kafka-topics.sh --bootstrap-server server1.kafka.com:9092 --create --topic tp1 --partitions 2 --replication-factor 3
+Created topic tp1.
+[root@server1 kafka_2.12-3.6.1]#
+[root@server1 kafka_2.12-3.6.1]# ./bin/kafka-topics.sh --bootstrap-server server1.kafka.com:9092 --describe --topic tp1
+Topic: tp1      TopicId: fIjlZtfNR1-gtBCEyPDrXQ PartitionCount: 2       ReplicationFactor: 3    Configs: segment.bytes=1073741824
+        Topic: tp1      Partition: 0    Leader: 2       Replicas: 2,3,1 Isr: 2,3,1
+        Topic: tp1      Partition: 1    Leader: 3       Replicas: 3,1,2 Isr: 3,1,2
+
+
+
+
+

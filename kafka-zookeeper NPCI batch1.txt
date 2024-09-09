@@ -1,0 +1,295 @@
+
+download apache kafka:
+
+ https://kafka.apache.org/downloads
+
+192.168.68.138 server1.kafka.com
+192.168.68.180 server2.kafka.com
+192.168.68.164 server3.kafka.com
+
+GET THE IP FROM ALL 3 CLONED MACHINES AND LOGIN USING PUTTY.
+GO TO ROOT DIRECTORY
+
+login as: tekcrux
+tekcrux@192.168.0.116's password:tekcrux@123
+Last login: Thu May 23 09:52:13 2024
+[tekcrux@localhost ~]$
+
+[tekcrux@localhost ~]$ sudo passwd root
+Changing password for user root.
+New password:tekcrux@123
+Retype new password:tekcrux@123
+passwd: all authentication tokens updated successfully.
+[tekcrux@localhost ~]$
+[tekcrux@localhost ~]$ su
+Password:tekcrux@123
+
+NOTE: RUN STEP 1 TO STEP 12 IN ALL 3 KAFKA NODES
+
+
+STEP 1 : UPDATE THE HOSTNAME IN EACH MACHINE LIKE BELOW.
+ 
+[root@localhost ~]# vi /etc/hosts
+
+[root@localhost ~]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+192.168.68.138 server1.kafka.com
+192.168.68.180 server2.kafka.com
+192.168.68.164 server3.kafka.com
+
+STEP 2 : DISABLE SELINUX
+
+          vi /etc/selinux/config
+          cat /etc/selinux/config
+          SELINUX=disabled
+
+STEP 3 : DISABLE FIREWALL
+
+         systemctl stop firewalld
+         systemctl disable firewalld
+[root@localhost ~]# systemctl status  firewalld
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor >
+   Active: inactive (dead)
+     Docs: man:firewalld(1)
+
+
+STEP 4 : INSTALL NTP
+
+     
+   dnf install chrony
+   systemctl enable chronyd
+ 
+   vi /etc/chrony.conf    (add this line -        allow 192.168.1.0/24)
+                                                                               
+   systemctl restart chronyd
+   firewall-cmd --permanent --add-service=ntp
+   firewall-cmd --reload
+   
+   chronyc sources
+
+STEP 5 : REBOOT THE MACHINES (reboot (or) init 6)
+
+         init 6
+
+NOTE: IF THE HOSTNAME IS NOT CrHANGED AFTER REBOOT, RUN THIS COMMAND TO SET REQUIRED HOSTNAME 
+               -  hostnamectl set-hostname server1.kafka.com
+
+STEP 6 : ONCE REBOOT IS DONE, LOGIN IN ALL MACHINES AND PERFORM PASSWORDLESS SSH PROCESS.
+
+       ssh-keygen -t rsa      (PRESS ENTER 4 TIMES)
+       cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+       ssh-copy-id root@<hostname>     (IN server1.kafka.com, GIVE "server2.kafka.com and server3.kafka.com"  FQDN  IN PLACE OF HOSTNAME & type YES and enter password tekcrux@123)
+       ssh <hostname>    (  ssh server1.kafka.com  ,    ssh server2.kafka.com  ,    ssh server3.kafka.com  )
+       exit
+       ssh-copy-id root@server1.kafka.com 
+       ssh-copy-id root@server2.kafka.com
+       ssh-copy-id root@server3.kafka.com
+
+ssh-copy-id root@server2.kafka.com
+
+Using this command try to check if you are able to connect without password with each other servers:
+
+ssh server2.kafka.com
+
+ssh server3.kafka.com
+
+
+
+
+STEP 7 : INSTALL JAVA
+
+[root@master kafka]#   yum -y install java-11-openjdk-devel
+
+NOTE:EVEN AFTER INSTALLING, IF IT SHOWS OLDER VERSION.U HAVE TO UPDATE IT BY GIVING THE BELOW COMMAND.IT WILL ASK YOU TO SELECT A NUMBER.
+[root@server1 ~]# update-alternatives --config java
+[root@server1 ~]# java -version
+
+STEP 8 : CREATE A DATA DIRECTORY FOR ZOOKEEPER. IN SERVER1 , myid=1 . IN SERVER2 , myid=2 . IN SERVER3 , myid=3.
+
+[root@server1 ~]# mkdir -p /data/zookeeper
+[root@server1 ~]# chmod -R 777 /data/zookeeper/
+
+--> create a myid file which contains the server ID in it.
+[root@server1 ~]# cd /data/zookeeper/
+[root@server1 zookeeper]# vi myid
+[root@server1 zookeeper]# cat myid
+1
+
+[root@server1 zookeeper]# ls -lrt
+total 0
+-rw-r--r--. 1 root root  2 May 22 12:15 myid
+
+
+STEP 9 :  CREATE A DIRECTORY FOR KAFKA
+
+[root@server1 ~]# mkdir -p /opt/kafka
+[root@server1 ~]# chmod -R 777 /opt/kafka
+
+
+STEP 10 : INSTALL KAFKA
+
+[root@server1 ~]# cd /opt/kafka
+[root@server1 kafka]# wget https://archive.apache.org/dist/kafka/3.6.1/kafka_2.12-3.6.1.tgz 
+[root@server1 kafka]# tar -xzf kafka_2.12-3.6.1.tgz
+[root@server1 kafka]# ls
+kafka_2.12-3.6.1  kafka_2.12-3.6.1.tgz
+
+[root@server1 kafka]# cd kafka_2.12-3.6.1
+[root@server1kafka_2.12-3.6.1 ]# ls -lrt
+total 64
+-rw-r--r--. 1 root root 28184 Sep  9  2021 NOTICE
+-rw-r--r--. 1 root root 14521 Sep  9  2021 LICENSE
+drwxr-xr-x. 2 root root   262 Sep  9  2021 licenses
+drwxr-xr-x. 3 root root  4096 Sep  9  2021 config
+drwxr-xr-x. 3 root root  4096 Sep  9  2021 bin
+drwxr-xr-x. 2 root root    44 Sep  9  2021 site-docs
+drwxr-xr-x. 2 root root  8192 May 22 11:41 libs
+
+------------------------------------------------
+STEP 11 : MAKE BELOW CHANGES IN "ZOOKEEPER" AND "SERVER" PROPERTIES..SIMILARLY CHANGE IT ALSO IN " SERVER2 AND SERVER3 "
+
+IN SERVER1
+[root@server2 kafka]# cd kafka_2.12-3.6.1/config
+
+[root@server2 config]# ls
+connect-console-sink.properties    consumer.properties
+connect-console-source.properties  kraft
+connect-distributed.properties     log4j.properties
+connect-file-sink.properties       producer.properties
+connect-file-source.properties     server.properties
+connect-log4j.properties           tools-log4j.properties
+connect-mirror-maker.properties    trogdor.conf
+connect-standalone.properties      zookeeper.properties
+
+--> changes in config/zookeeper.properties
+
+[root@server2 config]# vi zookeeper.properties
+
+# the directory where the snapshot is stored.
+dataDir=/data/zookeeper
+clientPort=2181
+maxClientCnxns=0
+tickTime=2000
+syncLimit=2
+autopurge.purgeInterval=1
+initLimit=5
+autopurge.snapRetainCount=10
+
+server.1=server1.kafka.com:2888:3888
+server.2=server2.kafka.com:2888:3888
+server.3=server3.kafka.com:2888:3888
+
+
+-->changes in server.properties
+
+--Broker id should be unique in each broker  while doing all the three servers. Listners and advertised listners ipsare respctive server ips
+broker.id=77                                                                    
+listeners=PLAINTEXT://:9092
+advertised.listeners=PLAINTEXT://server1.kafka.com:9092
+log.dirs=/data/zookeeper/
+zookeeper.connect=server1.kafka.com:2181,server2.kafka.com:2181,server3.kafka.com:2181
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+STEP 12 : RUN ZOOKEEPER AND KAFKA
+  
+-- Run zookeeper in all the servers using the following command:
+[root@server1 kafka_2.12-3.6.1 ]# ./bin/zookeeper-server-start.sh  -daemon  config/zookeeper.properties
+
+[root@node1 bin]#                  ps -ef | grep zookeeper
+or netstat -nlp | grep 2181      ---2181 is the default port for zookeeper
+
+-- Run Kafka in all the servers using the following command:
+
+[root@server1kafka_2.12-3.6.1 ]# ./bin/kafka-server-start.sh -daemon config/server.properties
+
+[root@node1 bin]#                ps -ef | grep kafka
+or 
+or netstat -nlp | grep 9092      ---9092 is the default port for kafka
+
+[root@server1kafka_2.12-3.6.1 ]# ./bin/kafka-topics.sh --bootstrap-server  192.168.68.138:9092 --list
+
+STEP 13 : TOPIC CREATION
+
+[root@server1kafka_2.12-3.6.1 ]# ./bin/kafka-topics.sh --create --bootstrap-server 192.168.68.138:9092 --topic my-topic --partitions 3 --replication-factor 3
+Created topic my-topic.
+
+[root@server1kafka_2.12-3.6.1 ]# ./bin/kafka-topics.sh  --bootstrap-server server1.kafka.com:9092  --list
+__consumer_offsets
+my-topic
+
+[root@follower1kafka_2.12-3.6.1 ]#  ./bin/kafka-topics.sh --bootstrap-server  192.168.68.138:9092 --list
+my-topic
+
+[root@follower1kafka_2.12-3.6.1 ]#  ./bin/kafka-topics.sh --bootstrap-server  192.168.68.138:9092 --describe --topic my-topic
+Topic: my-topic TopicId: CaU4gBffQUa_Suyp-61zKw PartitionCount: 3       ReplicationFactor: 2    Configs: segment.bytes=1073741824
+        Topic: my-topic Partition: 0    Leader: 3       Replicas: 3,2   Isr: 3,2
+        Topic: my-topic Partition: 1    Leader: 1       Replicas: 1,3   Isr: 1,3
+        Topic: my-topic Partition: 2    Leader: 2       Replicas: 2,1   Isr: 2,1
+
+[root@leaderkafka_2.12-3.6.1 ]# ./bin/kafka-console-producer.sh --bootstrap-server 192.168.68.138:9092 --topic my-topic
+>hello
+>welcome to apache kafka
+>version 3.0.0
+>its working
+>good
+>^C[root@leaderkafka_2.12-3.6.1 ]#
+
+[root@leaderkafka_2.12-3.6.1 ]# ./bin/kafka-console-consumer.sh --bootstrap-server  192.168.68.138:9092 --topic my-topic --from-beginning
+welcome to apache kafka
+hello
+version 3.0.0
+its working
+good
+^CProcessed a total of 5 messages
+[root@leaderkafka_2.12-3.6.1 ]#
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+bin/kafka-delete-records.sh --bootstrap-server localhost:9092  --offset-json-file keep-up-with-topic.offset.json
+
+https://sleeplessbeastie.eu/2021/12/03/how-to-delete-kafka-messages/
+
+kafka-configs.sh --zookeeper localhost:2181 --alter --entity-type topics --add-config retention.ms=1000 --entity-name text_topic
+
+https://codingharbour.com/apache-kafka/how-to-delete-records-from-a-kafka-topic/
+
+
+[2024-05-29 10:14:48,089] ERROR Fatal error during KafkaServer startup. Prepare to shutdown (kafka.server.KafkaServer)
+kafka.zookeeper.ZooKeeperClientTimeoutException: Timed out waiting for connection while in state: CONNECTING
+        at kafka.zookeeper.ZooKeeperClient.$anonfun$waitUntilConnected$3(ZooKeeperClient.scala:258)
+        at kafka.zookeeper.ZooKeeperClient.waitUntilConnected(ZooKeeperClient.scala:254)
+        at kafka.zookeeper.ZooKeeperClient.<init>(ZooKeeperClient.scala:116)
+        at kafka.zk.KafkaZkClient$.apply(KafkaZkClient.scala:2266)
+        at kafka.zk.KafkaZkClient$.createZkClient(KafkaZkClient.scala:2358)
+        at kafka.server.KafkaServer.initZkClient(KafkaServer.scala:658)
+        at kafka.server.KafkaServer.startup(KafkaServer.scala:222)
+        at kafka.Kafka$.main(Kafka.scala:113)
+        at kafka.Kafka.main(Kafka.scala)
+[2024-05-29 10:14:48,091] INFO shutting down (kafka.server.KafkaServer)
+[2024-05-29 10:14:48,113] INFO App info kafka.server for 111 unregistered (org.apache.kafka.common.utils.AppInfoParser)
+[2024-05-29 10:14:48,113] INFO shut down completed (kafka.server.KafkaServer)
+[2024-05-29 10:14:48,115] ERROR Exiting Kafka due to fatal exception during startup. (kafka.Kafka$)
+kafka.zookeeper.ZooKeeperClientTimeoutException: Timed out waiting for connection while in state: CONNECTING
+        at kafka.zookeeper.ZooKeeperClient.$anonfun$waitUntilConnected$3(ZooKeeperClient.scala:258)
+        at kafka.zookeeper.ZooKeeperClient.waitUntilConnected(ZooKeeperClient.scala:254)
+        at kafka.zookeeper.ZooKeeperClient.<init>(ZooKeeperClient.scala:116)
+        at kafka.zk.KafkaZkClient$.apply(KafkaZkClient.scala:2266)
+        at kafka.zk.KafkaZkClient$.createZkClient(KafkaZkClient.scala:2358)
+        at kafka.server.KafkaServer.initZkClient(KafkaServer.scala:658)
+        at kafka.server.KafkaServer.startup(KafkaServer.scala:222)
+        at kafka.Kafka$.main(Kafka.scala:113)
+        at kafka.Kafka.main(Kafka.scala)
+[2024-05-29 10:14:48,117] INFO shutting down (kafka.server.KafkaServer)
+[root@server1 kafka_2.12-3.6.1]# date
+Wed May 29 10:17:54 EDT 2024
+[root@server1 kafka_2.12-3.6.1]# date
+Wed May 29 10:18:25 EDT 2024
+[root@server1 kafka_2.12-3.6.1]#
+
