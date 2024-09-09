@@ -189,3 +189,5 @@ Follow the steps mentioned in the kraft folder and	<br/>
 
 
 ### Prometheus & Grafana
+cd P & G	<br/>
+Follow the steps of KAFKA SINGLE NODE.txt to bring up a single node cluster.
