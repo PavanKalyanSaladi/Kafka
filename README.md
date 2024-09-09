@@ -181,3 +181,11 @@ Now let's create a stream in KSQL and observer the data from it.	<br/>
 	```>ABCD, ``` <br/>
 
 Exercise:- Follow the Ksql_Notes.txt file and practise the rest commands
+
+
+### Kraft Cluster
+Follow the steps mentioned in the kraft folder and	<br/>
+&emsp;	use the kraft properties in config of kafka_2.12-3.6.1-pk
+
+
+### Prometheus & Grafana
