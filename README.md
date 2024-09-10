@@ -199,9 +199,24 @@ Use the ID:- ```11962``` to use the metrix template while creating a new dashboa
 
 ### Kafka security
 Trust Store - It will remain the same for both client and server.	<br/>
-KeyStore - It will be different to both client and server also it varies on client ans server. It is like a private key
+KeyStore - It will be different to both client and server also it varies on client ans server. 
+It is like a private key	<br/>
 
-There are several files used - for both client and user.
+Steps Invoved for SSL:
 1. Encryption	-	Encrypting the data that can't be understandable.
 2. Authentication	-	Verifying the client with jks & jts.
 3. Authorization	-	Permitting the user to read/write/liat and so on.
+
+Files created are listed below - for both client and user:-		<br/>
+```-rw-r--r-- 1 root root 1830 Sep 10 15:36 ca-key```   <br/>
+```-rw-r--r-- 1 root root 1830 Sep 10 15:36 ca-cert```  <br/>
+```-rw-r--r-- 1 root root 1093 Sep 10 15:48 veer-request.csr``` <br/>
+```-rw-r--r-- 1 root root 1464 Sep 10 15:51 veer-signed.crt```  <br/>
+```-rw-r--r-- 1 root root 5686 Sep 10 15:54 veer.keystore.jks```    <br/>
+```-rw-r--r-- 1 root root 1670 Sep 10 15:57 veer.truststore.jts```  <br/>
+```-rw-r--r-- 1 root root 1368 Sep 10 16:08 offset.truststore.jts```    <br/>
+```-rw-r--r-- 1 root root  973 Sep 10 16:27 client-request.csr```   <br/>
+```drwxrwxrwx 2 root root 4096 Sep 10 16:27 .```    <br/>
+```-rw-r--r-- 1 root root   41 Sep 10 16:27 ca-cert.srl```  <br/>
+```-rw-r--r-- 1 root root 1346 Sep 10 16:27 client-signed.crt```    <br/>
+```-rw-r--r-- 1 root root 4960 Sep 10 16:28 offset.keystore.jks```  <br/>
