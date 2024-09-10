@@ -185,19 +185,18 @@ Exercise:- Follow the Ksql_Notes.txt file and practise the rest commands
 
 ### Kraft Cluster
 Follow the steps mentioned in the kraft folder and	<br/>
-&emsp;	use the kraft properties in config of kafka_2.12-3.6.1-pk
+&emsp;	use the kraft properties in kafka_2.12-3.6.1-pk/config/kraft
 
 
 ### Prometheus & Grafana
-cd P & G	<br/>
-Bring up a single node cluster using KAFKA SINGLE NODE.txt	<br/>
+Bring up a single node cluster using P & G Setup.txt	<br/>
 Requiremens: -	<br/>
 ```Java 11```	<br/>
 ```Kafka 2.12_3.6.1```	<br/>
-Follow the steps mentioned in KAFKA SINGLE NODE.txt and setup Prometheus & Grafana.	<br/>
+Follow the steps mentioned in P & G Setup.txt and setup Prometheus & Grafana.	<br/>
 Use the ID:- ```11962``` to use the metrix template while creating a new dashboard in Grafana.
 
 
 ### Kafka security
-Trust Store - It will remain the same for both client and server.
+Trust Store - It will remain the same for both client and server.	<br/>
 KeyStore - It will be different to both client and server also it varies on client ans server. It is like a private key
