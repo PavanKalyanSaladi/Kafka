@@ -1,0 +1,435 @@
+
+[root@server1 ~]# ls
+anaconda-ks.cfg  initial-setup-ks.cfg  prometheus
+[root@server1 ~]# cd /opt/kafka/
+[root@server1 kafka]# ls
+kafka_2.12-3.6.1  kafka_2.12-3.6.1.tgz
+
+
+CLIENT SIDE(DOWNLOAD OFFSET EXPLORER 3.0)
+
+NOTE: right click on NOTEPAD AND RUN AS ADMINISTRATOR AND CLICK ON FILE >> CLICK ON OPEN >> GO TO THIS PATH C:\Windows\System32\drivers\etc ..THERE IS A HOST FILE..OPEN IT ..ADD IP AND FQDN  AND SAVE IT.
+192.168.0.112 server1.kafka.com
+
+[root@server1 kafka]# mkdir ssl
+
+
+[root@server1 kafka]# chmod -R 777 ssl
+[root@server1 kafka]#
+[root@server1 kafka]# ls -lrt
+total 84540
+-rw-r--r--. 1 root root 86566125 Sep 12  2022 kafka_2.12-3.6.1.tgz
+drwxr-xr-x. 8 root root      117 Jun 12 18:30 kafka_2.12-3.6.1
+drwxrwxrwx  2 root root        6 Jun 16 17:15 ssl
+[root@server1 kafka]# cd ssl
+[root@server1 ssl]#
+[root@server1 ssl]# pwd
+/opt/kafka/ssl
+[root@server1 ssl]# ls -lrt
+total 0
+
+
+
+
+
+STEP 1: ENCRYPTION
+
+1) CREATE CA authority.--(ca-cert,ca-key)
+
+[root@server1 ssl]#  openssl req -new -newkey rsa:4096 -days 365 -x509    -subj "/CN=kafka-security-CA" -keyout ca-key -out ca-cert 
+
+Generating a 4096 bit RSA private key
+.................++
+........................................++
+writing new private key to 'ca-key'
+-----
+Enter PEM pass phrase:tekcrux@123
+Verifying - Enter PEM pass phrase:
+
+[root@server1 ssl]# ls -lrt
+total 8
+-rw-r--r-- 1 root root 3272 Jun 17 16:40 ca-key
+-rw-r--r-- 1 root root 1809 Jun 17 16:40 ca-cert
+-----------------------------
+2)  CREATE KEYSTORE
+
+[root@server1 ssl]# keytool -genkey -keystore veer.keystore.jks -validity 365 -storepass veer@123 -keypass veer@123 -dname "CN=server1.kafka.com,OU=TEKCRUX,O=UNKNOWN,L=HYD,ST=IN,C=IN"  -storetype pkcs12 --keyalg RSA -keysize 2048
+
+[root@server1 ssl]#
+[root@server1 ssl]# ls -lrt
+total 12
+-rw-r--r-- 1 root root 3272 Jun 17 16:40 ca-key
+-rw-r--r-- 1 root root 1809 Jun 17 16:40 ca-cert
+-rw-r--r-- 1 root root 2726 Jun 17 16:46 veer.keystore.jks
+
+---------------------------------------
+*****to view contents of keystore****
+
+[root@server1 ssl]#  keytool -list -keystore veer.keystore.jks -v -storepass veer@123
+Keystore type: PKCS12
+Keystore provider: SUN
+
+Your keystore contains 1 entry
+
+Alias name: mykey
+Creation date: Jun 17, 2023
+Entry type: PrivateKeyEntry
+Certificate chain length: 1
+Certificate[1]:
+Owner: CN=server1.kafka.com, OU=TEKCRUX, O=UNKNOWN, L=HYD, ST=IN, C=IN
+-----------------------------------------------
+3) DO REQUEST FOR OUR KEYSTORE 
+
+[root@server1 ssl]#  keytool -keystore veer.keystore.jks -certreq -file veer-request.csr -storepass veer@123
+[root@server1 ssl]# ls -lrt
+total 16
+-rw-r--r-- 1 root root 3272 Jun 17 16:40 ca-key
+-rw-r--r-- 1 root root 1809 Jun 17 16:40 ca-cert
+-rw-r--r-- 1 root root 2726 Jun 17 16:46 veer.keystore.jks
+-rw-r--r-- 1 root root 1097 Jun 17 16:52 veer-request.csr
+[root@server1 ssl]# cat veer-request.csr
+--------------------------------------------------
+4) SIGNING THE REQUESTED CERTIFICATE 
+
+[root@server1 ssl]#  openssl x509 -req -CA ca-cert -CAkey ca-key -in veer-request.csr -out veer-signed.crt -days 365 -CAcreateserial
+
+Signature ok
+subject=/C=IN/ST=IN/L=HYD/O=UNKNOWN/OU=TEKCRUX/CN=server1.kafka.com
+Getting CA Private Key
+Enter pass phrase for ca-key:tekcrux@123
+
+-----------------------------------------------------------
+5) Now add the ca-cert (public certficate) and veer-signed.crt(signed certificate)  to keystore  veer.keystore.jks
+
+[root@server1 ssl]# keytool -keystore veer.keystore.jks -alias CA -import -file ca-cert -storepass veer@123
+
+Owner: CN=kafka-security-CA
+Issuer: CN=kafka-security-CA
+Serial number: a8381c0b51bf382a
+Valid from: Sat Jun 17 16:40:16 IST 2023 until: Sun Jun 16 16:40:16 IST 2024
+Certificate fingerprints:
+... ....       .... ....
+Trust this certificate? [no]:  yes
+Certificate was added to keystore
+
+-------------------------------------------------
+[root@server1 ssl]# keytool -keystore veer.keystore.jks -import -file veer-signed.crt -storepass veer@123
+
+Certificate reply was installed in keystore
+
+[root@server1 ssl]# ls -lrt
+total 28
+-rw-r--r-- 1 root root 3272 Jun 17 16:40 ca-key
+-rw-r--r-- 1 root root 1809 Jun 17 16:40 ca-cert
+-rw-r--r-- 1 root root 1097 Jun 17 16:52 veer-request.csr
+-rw-r--r-- 1 root root   17 Jun 17 16:56 ca-cert.srl
+-rw-r--r-- 1 root root 1452 Jun 17 16:56 veer-signed.crt
+-rw-r--r-- 1 root root 5654 Jun 17 17:01 veer.keystore.jks
+-----------------------------------------------------
+6)  CREATE A TRUSTORE AND IMPORT ca-cert to it.
+
+[root@server1 ssl]#  keytool -keystore veer.truststore.jks -alias CA -import -file  ca-cert -storepass veer@123
+
+Owner: CN=kafka-security-CA
+Issuer: CN=kafka-security-CA
+Serial number: a8381c0b51bf382a
+Valid from: Sat Jun 17 16:40:16 IST 2023 until: Sun Jun 16 16:40:16 IST 2024
+Certificate fingerprints:
+
+[root@server1 ssl]# ls -lrt
+total 32
+-rw-r--r-- 1 root root 3272 Jun 17 16:40 ca-key
+-rw-r--r-- 1 root root 1809 Jun 17 16:40 ca-cert
+-rw-r--r-- 1 root root 1097 Jun 17 16:52 veer-request.csr
+-rw-r--r-- 1 root root   17 Jun 17 16:56 ca-cert.srl
+-rw-r--r-- 1 root root 1452 Jun 17 16:56 veer-signed.crt
+-rw-r--r-- 1 root root 5654 Jun 17 17:01 veer.keystore.jks
+-rw-r--r-- 1 root root 1654 Jun 17 17:04 veer.truststore.jks
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CHANGE "SERVER.PROPERTIES" FILE LIKE BELOW
+
+listeners=SSL://:9092
+advertised.listeners=SSL://server1.kafka.com:9092
+
+### SSL keystore and truststore details ###
+ssl.keystore.location=/opt/kafka/ssl/veer.keystore.jks
+ssl.keystore.password=veer@123
+ssl.key.password=veer@123
+ssl.truststore.location=/opt/kafka/ssl/veer.truststore.jks
+ssl.truststore.password=veer@123
+inter.broker.listener.name=SSL
+--------------------------------------------------------
+DISCONNECT FROM OFFSET EXPLORER
+RESTART KAFKA
+-------------------------------------------------
+CHECKING
+
+[root@server1 kafka_2.12-3.6.1]# ls -lrt /opt/kafka/ssl/veer.keystore.jks
+-rw-r--r-- 1 root root 5654 Jun 17 17:01 /opt/kafka/ssl/veer.keystore.jks
+[root@server1 kafka_2.12-3.6.1]# ls -lrt /opt/kafka/ssl/veer.truststore.jks
+-rw-r--r-- 1 root root 1654 Jun 17 17:04 /opt/kafka/ssl/veer.truststore.jks
+
+------------------------------
+TO CHECK whether kafka can read keystore
+
+[root@server1 ssl]# openssl s_client -connect server1.kafka.com:9092
+
+CONNECTED(00000003)
+depth=1 CN = kafka-security-CA
+verify error:num=19:self signed certificate in certificate chain
+---
+Certificate chain
+ 0 s:/C=IN/ST=IN/L=HYD/O=UNKNOWN/OU=TEKCRUX/CN=server1.kafka.com
+   i:/CN=kafka-security-CA
+ 1 s:/CN=kafka-security-CA
+   i:/CN=kafka-security-CA
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+.....   ......
+.......         ...............
+SSL handshake has read 2812 bytes and written 415 bytes
+
+
+-------------------------------------------------------------------------------------------------------
+CLIENT SIDE
+
+NOTE: right click on NOTEPAD AND RUN AS ADMINISTRATOR AND CLICK ON FILE >> CLICK ON OPEN >> GO TO THIS PATH C:\Windows\System32\drivers\etc ..THERE IS A HOST FILE..OPEN IT ..ADD IP AND FQDN  AND SAVE IT.
+192.168.0.112 server1.kafka.com
+
+
+CREATING A TRUSTSTORE FOR CLIENT
+[root@server1 ssl]# keytool -keystore  offset.truststore.jks -alias CA -import -file ca-cert -storepass client@123 -storetype JKS
+
+Owner: CN=kafka-security-CA
+Issuer: CN=kafka-security-CA
+Serial number: a8381c0b51bf382a
+Valid from: Sat Jun 17 16:40:16 IST 2023 until: Sun Jun 16 16:40:16 IST 2024
+Certificate fingerprints:
+
+[root@server1 ssl]# cp -r offset.truststore.jks  /home/tekcrux/
+-------------------------------------------------------------------
+
+
+
+NOW CONNECT TO OFFSET EXPLORER..
+
+COPY THE SAME TRUSTORE ( offset.truststore.jks) TO YOUR SYSTEM DESKTOP ...IN THE SECURITY TAB, SELECT SSL AND GIVE THE FULL PATH OF THE TRUSTSTORE AND ITS PASSWORD TO OFFSET EXPLORER..
+
+
+UPDATE THE SETTINGS AND CONNECT IT..IT WILL WORK..U CAN ACCESS THE TOPICS ALSO..
+
+ENCRYPTION DONE NOW.
+
+
+------------------------------------------------------------------------------
+
+STEP 2: ENABLE AUTHENTICATION
+
+OPEN SERVER.PROPERTIES
+
+### SSL authentication ###
+ssl.client.auth=required
+
+AND RESTART KAFKA
+
+DISCONNECT FROM OFFSET EXPLORER AND TRY TO CONNECT WITH KAFKA.
+
+NOTE: AFTER ABOVE PROPERTY ADDED..IT WIIL THROW AN ERROR WHILE CONNECTING..
+
+because it has to prove its authentication i.e.keystore...broker is now SSL enabled authentication.
+
+--------------------------------------------------------------
+STEP 3: CREATING A KEYSTORE FOR OFFSET EXPLORER IN KAFKA SERVER.
+
+STEP A: CREATA A KEYSTORE
+[root@server1 ssl]# keytool -genkey -keystore  offset.keystore.jks -validity 365 -storepass client@123 -keypass client@123 -dname "CN=offset" -storetype JKS --keyalg RSA -keysize 2048
+
+[root@server1 ssl]# ls -lrt
+total 40
+-rw-r--r-- 1 root root 3272 Jun 17 16:40 ca-key
+-rw-r--r-- 1 root root 1809 Jun 17 16:40 ca-cert
+-rw-r--r-- 1 root root 1097 Jun 17 16:52 veer-request.csr
+-rw-r--r-- 1 root root   17 Jun 17 16:56 ca-cert.srl
+-rw-r--r-- 1 root root 1452 Jun 17 16:56 veer-signed.crt
+-rw-r--r-- 1 root root 5654 Jun 17 17:01 veer.keystore.jks
+-rw-r--r-- 1 root root 1654 Jun 17 17:04 veer.truststore.jks
+-rw-r--r-- 1 root root 1354 Jun 17 18:19 offset.jks
+-rw-r--r-- 1 root root 2066 Jun 17 19:07 offset.keystore.jks
+
+STEP B: REQUEST TO SIGN 
+[root@server1 ssl]# keytool -keystore offset.keystore.jks -certreq -file client-request.csr -storepass client@123 -keypass client@123
+
+STEP C: SIGNING THE CERTIFICATE
+[root@server1 ssl]# openssl x509 -req -CA ca-cert -CAkey ca-key -in  client-request.csr -out client-signed.crt -days 365 -CAcreateserial
+
+Signature ok
+subject=/CN=mydesktop
+Getting CA Private Key
+
+STEP D: NOW ADD ca-cert and client-signed.crt to offset.keystore.jks
+
+[root@server1 ssl]#  keytool -keystore offset.keystore.jks  -alias CA -import -file ca-cert -storepass client@123
+
+Owner: CN=kafka-security-CA
+Issuer: CN=kafka-security-CA
+Serial number: a8381c0b51bf382a
+Valid from: Sat Jun 17 16:40:16 IST 2023 until: Sun Jun 16 16:40:16 IST 2024
+Certificate fingerprints:
+..... .....
+Trust this certificate? [no]:  yes
+Certificate was added to keystore
+
+[root@server1 ssl]# keytool -keystore offset.keystore.jks -import -file client-signed.crt -storepass client@123 -keypass client@123
+
+Certificate reply was installed in keystore
+
+[root@server1 ssl]# ls -lrt
+total 52
+-rw-r--r-- 1 root root 3272 Jun 17 16:40 ca-key
+-rw-r--r-- 1 root root 1809 Jun 17 16:40 ca-cert
+-rw-r--r-- 1 root root 1097 Jun 17 16:52 veer-request.csr
+-rw-r--r-- 1 root root 1452 Jun 17 16:56 veer-signed.crt
+-rw-r--r-- 1 root root 5654 Jun 17 17:01 veer.keystore.jks
+-rw-r--r-- 1 root root 1654 Jun 17 17:04 veer.truststore.jks
+-rw-r--r-- 1 root root 1354 Jun 17 18:19 offset.jks
+-rw-r--r-- 1 root root  977 Jun 17 19:09 client-request.csr
+-rw-r--r-- 1 root root   17 Jun 17 19:10 ca-cert.srl
+-rw-r--r-- 1 root root 1334 Jun 17 19:10 client-signed.crt
+-rw-r--r-- 1 root root 4923 Jun 17 19:14 offset.keystore.jks
+
+NOW COPY "offset.keystore.jks" TO THE DESKTOP.( C:\Users\admin\Desktop\offset.keystore.jks)
+
+STEP 4: NOW ADD ABOVE KEYSTORE DETAILS IN OFFSET EXPLORER .AND IT PROVES ITS AUTHENTICATION.
+
+AUTHENTICATION IS DONE NOW.
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+STEP 3: AUTHORIZATION ..(rules for clients to do particular operation on particular topic)
+
+AUTHORIZER CLASS NAME IN BROKER
+(add below line to server properties..before disconnect the offset connection)
+ ### authorization#####
+authorizer.class.name=kafka.security.authorizer.AclAuthorizer
+
+------------------------------------------------------------------------
+go to kafka logs and tail it.
+
+[root@server1 logs]# pwd
+/opt/kafka/kafka_2.12-3.6.1/logs
+
+[root@server1 logs]# tail -200f kafka-authorizer.log
+RESTART the kafka
+
+START KAFKA AND U WILL SEE AN ERROR...i.e.kafkaAuthorizationException
+
+STEP A: Declaring a super user
+...........................................
+(add below line to server properties..
+##DECLARING SUPER USER OF CERTIFICATE
+
+super.users=User:CN=server1.kafka.com,OU=TEKCRUX,O=UNKNOWN,L=HYD,ST=IN,C=IN
+..............................................................
+
+save it and RESTART kafka AND u dont see an error.
+
+TEST THE CONNECTION..IT WILL BE SUCCESSFUL BUT U CAN NOT ACCESS THE TOPICS..TRY TO CREATE A TOPIC..IT WILL THROW AN ERROR..THAT MEANS U HAVE TO GIVE "PROPERTY FILE". WHICH WE DO IN THE BELOW STEP
+
+STEP B: FILE TO INVOKE ALL THE  Permissions
+
+
+cat /var/tmp/kafka-admin.properties
+
+
+### SSL Encryption ###
+security.protocol=SSL
+ssl.keystore.location=/opt/kafka/ssl/veer.keystore.jks
+ssl.keystore.password=veer@123
+### SSL Client authentication ###
+ssl.key.password=veer@123
+ssl.truststore.location=/opt/kafka/ssl/veer.truststore.jks
+ssl.truststore.password=veer@123
+
+-------------------------------
+end 
+
+[root@server1 kafka_2.12-3.6.1]# ./bin/kafka-topics.sh  --bootstrap-server server1.kafka.com:9092 --list        
+ Error while executing topic command : The AdminClient thread has exited. Call: listTopics
+[2024-08-19 19:12:45,674] ERROR Uncaught exception in thread 'kafka-admin-client-thread | adminclient-1': (org.apache.kafka.common.utils.KafkaThread)
+java.lang.OutOfMemoryError: Java heap space
+        at java.base/java.nio.HeapByteBuffer.<init>(HeapByteBuffer.java:61)
+        at java.base/java.nio.ByteBuffer.allocate(ByteBuffer.java:348)
+        at org.apache.kafka.common.memory.MemoryPool$1.tryAllocate(MemoryPool.java:30)
+        at org.apache.kafka.clients.NetworkClient.poll(NetworkClient.java:571)
+        at org.apache.kafka.clients.admin.KafkaAdminClient$AdminClientRunnable.processRequests(KafkaAdminClient.java:1381)
+        at org.apache.kafka.clients.admin.KafkaAdminClient$AdminClientRunnable.run(KafkaAdminClient.java:1312)
+        at java.base/java.lang.Thread.run(Thread.java:829)
+[2024-08-19 19:12:45,686] ERROR org.apache.kafka.common.errors.TimeoutException: The AdminClient thread has exited. Call: listTopics
+ (kafka.admin.TopicCommand$)
+
+
+
+[root@server1 bin]./kafka-topics.sh --bootstrap-server server1.kafka.com:9092 --list --command-config  /var/tmp/kafka-admin.properties
+
+TP1
+
+
+BY ABOVE COMMAND IT WILL LIST THE TOPICS.
+
+
+ACLS 
+
+now everthing is blocked because kafka is ssl enable...so u have to give acls by using CN=offset
+
+                                                             ACLS        
+
+CN=offset ==>  Write, Read
+
+
+
+ OFFSET EXPLORER CANNOT ACCESS THE KAFKA TOPICS...U CAN GIVE ACCESS TO OFFSET BY USING CLI LIKE BELOW COMMAND OR BY DIRECTLY FROM OFFSET EXPLORER..
+
+1) GIVING ACLS TO CLIENT THROUGH CLI  (in allow host ,give ipaddress of your client machine ipv4 address)
+
+[root@server1 kafka_2.12-3.6.1]# ./bin/kafka-acls.sh --bootstrap-server server1.kafka.com:9092  --command-config /var/tmp/kafka-admin.properties --add --allow-principal User:"CN=offset" --allow-host 192.168.0.100 --operation Write --topic TP1
+
+Adding ACLs for resource `ResourcePattern(resourceType=TOPIC, name=TP1, patternType=LITERAL)`:
+        (principal=User:CN=offset, host=192.168.0.100, operation=WRITE, permissionType=ALLOW)
+
+Current ACLs for resource `ResourcePattern(resourceType=TOPIC, name=TP1, patternType=LITERAL)`:
+        (principal=User:CN=offset, host=192.168.0.100, operation=WRITE, permissionType=ALLOW)
+
+
+[root@server1 kafka_2.12-3.6.1]#  ./bin/kafka-acls.sh --bootstrap-server server1.kafka.com:9092  --command-config /var/tmp/kafka-admin.properties --add --allow-principal User:"CN=offset" --allow-host 192.168.0.100 --operation Read --topic TP1
+Adding ACLs for resource `ResourcePattern(resourceType=TOPIC, name=TP1, patternType=LITERAL)`:
+        (principal=User:CN=offset, host=192.168.0.100, operation=READ, permissionType=ALLOW)
+
+Current ACLs for resource `ResourcePattern(resourceType=TOPIC, name=TP1, patternType=LITERAL)`:
+         (principal=User:CN=offset, host=192.168.0.100, operation=READ, permissionType=ALLOW)
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+
+
+
+
+
+
