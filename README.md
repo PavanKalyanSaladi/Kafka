@@ -200,3 +200,8 @@ Use the ID:- ```11962``` to use the metrix template while creating a new dashboa
 ### Kafka security
 Trust Store - It will remain the same for both client and server.	<br/>
 KeyStore - It will be different to both client and server also it varies on client ans server. It is like a private key
+
+There are several files used - for both client and user.
+1. Encryption	-	Encrypting the data that can't be understandable.
+2. Authentication	-	Verifying the client with jks & jts.
+3. Authorization	-	Permitting the user to read/write/liat and so on.
