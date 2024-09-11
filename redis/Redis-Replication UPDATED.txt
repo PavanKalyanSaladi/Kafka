@@ -1,0 +1,487 @@
+﻿STEP 1 : UPDATE THE HOSTNAME IN EACH MACHINE LIKE BELOW. 
+[root@localhost ~]# vi /etc/hosts
+[root@localhost ~]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+
+192.168.0.108 server1.Redis.com
+
+
+
+
+STEP 2 : DISABLE SELINUX
+
+
+          vi /etc/selinux/config
+
+
+            SELINUX=disabled
+
+
+STEP 3 : DISABLE FIREWALL
+
+
+         systemctl stop firewalld
+         systemctl disable firewalld
+ [root@localhost ~]# systemctl status  firewalld
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor >
+   Active: inactive (dead)
+     Docs: man:firewalld(1)
+
+
+
+
+STEP 4 : INSTALL NTP
+   dnf install chrony
+   systemctl enable chronyd
+   vi /etc/chrony.conf    (add this line -        allow 192.168.1.0/24)
+   systemctl restart chronyd
+   firewall-cmd --permanent --add-service=ntp
+   firewall-cmd --reload
+   chronyc sources
+
+
+STEP 5 : REBOOT THE MACHINES (reboot (or) init 6)
+    init 6
+
+
+NOTE: IF THE HOSTNAME IS NOT CHANGED AFTER REBOOT, RUN THIS COMMAND TO SET REQUIRED HOSTNAME 
+               -  hostnamectl set-hostname server1.Redis.com
+
+
+
+
+ In this scenario we are going to create 3 Slaves instances.
+ These 3 instances are going to be a replica of Master.
+
+
+whatever key changes which are being done in Master that
+is automatically going to be synced in each of these Replicas and Master remains as usual. Whenever you are setting Replication there is no difference in the Configuration of Master. However, in the Slave you need to go and edit Redis.conf file and in the Redis.conf file, you need to provide Master
+
+
+Redis slave instances remain in Read Only Mode.
+
+
+ all the users can connect to all the Slave Nodes but they can only do Read Only Operations.
+
+
+
+
+[root@server1 ~]# cp -r redis-7.4.0 redis-M
+[root@server1 ~]# cp -r redis-7.4.0 redis-S1
+[root@server1 ~]# cp -r redis-7.4.0 redis-S2
+[root@server1 ~]# cp -r redis-7.4.0 redis-S3
+
+
+[root@server1 ~]# ls -lrt
+total 3532
+
+
+drwxrwxr-x  8 root root    4096 Jul 29 11:01 redis-7.4.0
+-rw-r--r--  1 root root 3525325 Jul 29 11:11 redis-7.4.0.tar.gz
+
+
+drwxr-xr-x  8 root root    4096 Aug 16 12:26 redis-M
+drwxr-xr-x  8 root root    4096 Aug 16 12:26 redis-S1
+drwxr-xr-x  8 root root    4096 Aug 16 12:26 redis-S2
+drwxr-xr-x  8 root root    4096 Aug 16 12:26 redis-S3
+
+
+
+
+Master can be started as usual and we need to make changes in the Configuration File of Slaves
+[root@server1 ~]# cd redis-M
+
+
+
+
+
+
+
+
+
+
+Changes in M
+
+
+logfile "/tmp/redis-M.log"
+
+
+# To enable logging to the system logger, just set 'syslog-enabled' to yes,
+# and optionally update the other syslog parameters to suit your needs.
+syslog-enabled yes
+
+
+# Specify the syslog identity.
+syslog-ident redis
+
+
+dbfilename dump-M.rdb
+
+
+dir /root/
+
+
+
+
+[root@server1 redis-M]# cd ..
+
+
+[root@server1 ~]# cd redis-S1
+
+
+[root@server1 redis-S1]# vi redis.conf
+
+
+
+
+Changes in S1
+
+
+port 6380
+
+
+replicaof 127.0.0.1 6379
+
+
+dbfilename dump-S1.rdb
+
+
+dir /root/
+
+
+logfile "/tmp/redis-S1.log"
+
+
+syslog-enabled yes
+
+
+# Specify the syslog identity.
+ syslog-ident redis
+
+
+
+
+
+
+
+
+[root@server1 redis-S1]# cd
+
+
+[root@server1 ~]# cd redis-S2
+
+
+[root@server1 redis-S2]# vi redis.conf
+
+
+Make similar Changes in S2 and S3
+
+
+Changes in S2
+
+
+port 6381
+
+
+replicaof 127.0.0.1 6379
+
+
+dbfilename dump-S2.rdb
+
+
+dir /root/
+
+
+logfile "/tmp/redis-S2.log"
+
+
+syslog-enabled yes
+
+
+# Specify the syslog identity.
+ syslog-ident redis
+
+
+
+
+[root@server1 redis-S2]# cd ..
+
+
+[root@server1 ~]# cd redis-S3
+
+
+[root@server1 redis-S3]# vi redis.conf
+
+
+[root@server1 redis-S3]# cat redis.conf
+
+
+
+
+
+
+Changes in S3
+
+
+port 6382
+
+
+replicaof 127.0.0.1 6379
+
+
+dbfilename dump-S3.rdb
+
+
+dir /root/
+
+
+logfile "/tmp/redis-S3.log"
+
+
+syslog-enabled yes
+
+
+# Specify the syslog identity.
+ syslog-ident redis
+
+
+
+
+Run all the three servers
+
+
+[root@server1 src]# ps -ef |grep redis
+root       56552   38163  0 11:36 pts/1    00:00:28 ./redis-server 127.0.0.1:6379
+root       72345   56951  0 13:09 pts/2    00:00:00 ./redis-server 127.0.0.1:6380
+root       76018   56951  0 13:11 pts/2    00:00:00 ./redis-server 127.0.0.1:6381
+root       77570   56951  0 13:14 pts/2    00:00:00 ./redis-server 127.0.0.1:6382
+root       77578   56951  0 13:14 pts/2    00:00:00 grep --color=auto redis
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CHECK IN  LOG OF SLAVES,WHETHER THEY ARE CONNECTED TO MASTER
+[root@server1 tmp]# cat redis-S1.log
+72345:C 16 Aug 2024 13:09:20.842 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+72345:C 16 Aug 2024 13:09:20.842 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+72345:C 16 Aug 2024 13:09:20.842 * Redis version=7.4.0, bits=64, commit=00000000, modified=0, pid=72345, just started
+72345:C 16 Aug 2024 13:09:20.842 * Configuration loaded
+72345:S 16 Aug 2024 13:09:20.843 * Increased maximum number of open files to 10032 (it was originally set to 1024).
+72345:S 16 Aug 2024 13:09:20.843 * monotonic clock: POSIX clock_gettime
+72345:S 16 Aug 2024 13:09:20.843 * Running mode=standalone, port=6380.
+72345:S 16 Aug 2024 13:09:20.844 * Server initialized
+72345:S 16 Aug 2024 13:09:20.844 * Ready to accept connections tcp
+72345:S 16 Aug 2024 13:09:20.844 * Connecting to MASTER 127.0.0.1:6379
+72345:S 16 Aug 2024 13:09:20.844 * MASTER <-> REPLICA sync started
+72345:S 16 Aug 2024 13:09:20.844 * Non blocking connect for SYNC fired the event.
+72345:S 16 Aug 2024 13:09:20.846 * Master replied to PING, replication can continue...
+72345:S 16 Aug 2024 13:09:20.846 * Partial resynchronization not possible (no cached master)
+72345:S 16 Aug 2024 13:09:25.751 * Full resync from master: d0f73985dc711846f6ed4c594b0a53b5dc6c2f23:0
+72345:S 16 Aug 2024 13:09:25.754 * MASTER <-> REPLICA sync: receiving streamed RDB from master with EOF to disk
+72345:S 16 Aug 2024 13:09:25.755 * MASTER <-> REPLICA sync: Flushing old data
+72345:S 16 Aug 2024 13:09:25.755 * MASTER <-> REPLICA sync: Loading DB in memory
+72345:S 16 Aug 2024 13:09:25.773 * Loading RDB produced by version 7.4.0
+72345:S 16 Aug 2024 13:09:25.773 * RDB age 0 seconds
+72345:S 16 Aug 2024 13:09:25.773 * RDB memory usage when created 1.06 Mb
+72345:S 16 Aug 2024 13:09:25.773 * Done loading RDB, keys loaded: 250, keys expired: 0.
+72345:S 16 Aug 2024 13:09:25.773 * MASTER <-> REPLICA sync: Finished with success
+72429:C 16 Aug 2024 13:09:39.610 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+72429:C 16 Aug 2024 13:09:39.610 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+72429:C 16 Aug 2024 13:09:39.610 * Redis version=7.4.0, bits=64, commit=00000000, modified=0, pid=72429, just started
+72429:C 16 Aug 2024 13:09:39.610 * Configuration loaded
+72429:S 16 Aug 2024 13:09:39.610 * Increased maximum number of open files to 10032 (it was originally set to 1024).
+72429:S 16 Aug 2024 13:09:39.610 * monotonic clock: POSIX clock_gettime
+72429:S 16 Aug 2024 13:09:39.611 * Running mode=standalone, port=6380.
+72429:S 16 Aug 2024 13:09:39.611 # Warning: Could not create server TCP listening socket 127.0.0.1:6380: bind: Address already in use
+72429:S 16 Aug 2024 13:09:39.611 # Failed listening on port 6380 (tcp), aborting.
+
+
+[root@server1 tmp]# cat redis-S2.log
+76018:C 16 Aug 2024 13:11:01.664 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+76018:C 16 Aug 2024 13:11:01.664 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+76018:C 16 Aug 2024 13:11:01.664 * Redis version=7.4.0, bits=64, commit=00000000, modified=0, pid=76018, just started
+76018:C 16 Aug 2024 13:11:01.664 * Configuration loaded
+76018:S 16 Aug 2024 13:11:01.665 * Increased maximum number of open files to 10032 (it was originally set to 1024).
+76018:S 16 Aug 2024 13:11:01.665 * monotonic clock: POSIX clock_gettime
+76018:S 16 Aug 2024 13:11:01.665 * Running mode=standalone, port=6381.
+76018:S 16 Aug 2024 13:11:01.666 * Server initialized
+76018:S 16 Aug 2024 13:11:01.666 * Ready to accept connections tcp
+76018:S 16 Aug 2024 13:11:01.666 * Connecting to MASTER 127.0.0.1:6379
+76018:S 16 Aug 2024 13:11:01.667 * MASTER <-> REPLICA sync started
+76018:S 16 Aug 2024 13:11:01.667 * Non blocking connect for SYNC fired the event.
+76018:S 16 Aug 2024 13:11:01.667 * Master replied to PING, replication can continue...
+76018:S 16 Aug 2024 13:11:01.668 * Partial resynchronization not possible (no cached master)
+76018:S 16 Aug 2024 13:11:06.715 * Full resync from master: d0f73985dc711846f6ed4c594b0a53b5dc6c2f23:112
+76018:S 16 Aug 2024 13:11:06.721 * MASTER <-> REPLICA sync: receiving streamed RDB from master with EOF to disk
+76018:S 16 Aug 2024 13:11:06.722 * MASTER <-> REPLICA sync: Flushing old data
+76018:S 16 Aug 2024 13:11:06.723 * MASTER <-> REPLICA sync: Loading DB in memory
+76018:S 16 Aug 2024 13:11:06.761 * Loading RDB produced by version 7.4.0
+76018:S 16 Aug 2024 13:11:06.761 * RDB age 0 seconds
+76018:S 16 Aug 2024 13:11:06.761 * RDB memory usage when created 1.11 Mb
+76018:S 16 Aug 2024 13:11:06.761 * Done loading RDB, keys loaded: 250, keys expired: 0.
+76018:S 16 Aug 2024 13:11:06.761 * MASTER <-> REPLICA sync: Finished with success
+[root@server1 ~]# redis-cli
+bash: redis-cli: command not found...
+Install package 'redis' to provide command 'redis-cli'? [N/y] y
+
+
+ * Waiting in queue...
+The following packages have to be installed:
+ redis-5.0.3-5.module_el8.4.0+2583+b9845322.x86_64      A persistent key-value database
+Proceed with changes? [N/y] y
+ * Installing packages...
+
+
+[root@server1 ~]# redis-cli
+127.0.0.1:6379> dbsize
+(integer) 250
+127.0.0.1:6379> exit
+[root@server1 ~]# redis-cli  -p 6380
+127.0.0.1:6380> dbsize
+(integer) 250
+127.0.0.1:6380> exit
+[root@server1 ~]# redis-cli  -p 6381
+127.0.0.1:6381> dbsize
+(integer) 250
+127.0.0.1:6381> exit
+[root@server1 ~]# redis-cli  -p 6382
+127.0.0.1:6382> dbsize
+(integer) 250
+127.0.0.1:6382> exit
+[root@server1 ~]# redis-cli
+127.0.0.1:6379> set sport cricket
+OK
+127.0.0.1:6379> get sport
+"cricket"
+127.0.0.1:6379> exit
+[root@server1 ~]# redis-cli  -p 6380
+127.0.0.1:6380> get sport
+"cricket"
+127.0.0.1:6380> set sport cricket
+(error) READONLY You can't write against a read only replica.
+127.0.0.1:6380> exit
+[root@server1 ~]# redis-cli  -p 6381
+127.0.0.1:6381> set sport cricket
+(error) READONLY You can't write against a read only replica.
+127.0.0.1:6381> exit
+
+
+[root@server1 ~]# redis-cli  -p 6382
+127.0.0.1:6382> set sport cricket
+(error) READONLY You can't write against a read only replica.
+127.0.0.1:6382> get sport
+"cricket"
+127.0.0.1:6382> exit
+
+
+
+
+[root@server1 ~]# ps -ef |grep redis
+root       56552   38163  0 11:36 pts/1    00:01:15 ./redis-server 127.0.0.1:6379
+root       72345   56951  0 13:09 pts/2    00:00:47 ./redis-server 127.0.0.1:6380
+root       76018   56951  0 13:11 pts/2    00:00:47 ./redis-server 127.0.0.1:6381
+root       77570   56951  0 13:14 pts/2    00:00:46 ./redis-server 127.0.0.1:6382
+root      112040   56951  0 16:21 pts/2    00:00:00 grep --color=auto redis
+
+
+[root@server1 ~]# kill -9 56552
+
+
+[root@server1 ~]# ps -ef |grep redis
+root       72345   56951  0 13:09 pts/2    00:00:48 ./redis-server 127.0.0.1:6380
+root       76018   56951  0 13:11 pts/2    00:00:47 ./redis-server 127.0.0.1:6381
+root       77570   56951  0 13:14 pts/2    00:00:47 ./redis-server 127.0.0.1:6382
+root      112075   56951  0 16:23 pts/2    00:00:00 grep --color=auto redis
+
+
+[root@server1 ~]# redis-cli
+Could not connect to Redis at 127.0.0.1:6379: Connection refused
+not connected> exit
+
+
+[root@server1 ~]# redis-cli -p 6380
+127.0.0.1:6380> lrange colour 0 1
+1) "yellow"
+2) "blue"
+127.0.0.1:6380> get color
+"blue"
+127.0.0.1:6380> exit
+
+
+[root@server1 ~]# cd redis-M
+
+
+[root@server1 redis-M]# cd src
+
+
+[root@server1 src]# ./redis-server ../redis.conf &
+[4] 112106
+
+
+[root@server1 src]# ps -ef |grep redis
+root       72345   56951  0 13:09 pts/2    00:00:48 ./redis-server 127.0.0.1:6380
+root       76018   56951  0 13:11 pts/2    00:00:48 ./redis-server 127.0.0.1:6381
+root       77570   56951  0 13:14 pts/2    00:00:48 ./redis-server 127.0.0.1:6382
+root      112106   56951  0 16:26 pts/2    00:00:00 ./redis-server 127.0.0.1:6379
+root      112114   56951  0 16:26 pts/2    00:00:00 grep --color=auto redis
+
+
+[root@server1 src]# cd
+
+
+[root@server1 ~]# redis-cli
+127.0.0.1:6379> get color
+(nil)
+127.0.0.1:6379> lrange colour 0 1
+(empty list or set)
+127.0.0.1:6379> exit
+[root@server1 ~]# redis-cli -p 6380
+127.0.0.1:6380> keys *
+(empty list or set)
+127.0.0.1:6380> get color
+(nil)
+127.0.0.1:6380> set cloo
+(error) ERR wrong number of arguments for 'set' command
+127.0.0.1:6380> set cloo jdkl
+(error) READONLY You can't write against a read only replica.
+127.0.0.1:6380> exit
+
+
+
+
+Note:
+
+
+127.0.0.1:6379> lpush color red green blue yellow
+(error) MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.
+
+
+[root@server1 ~]# redis-cli CONFIG SET stop-writes-on-bgsave-error no
+OK

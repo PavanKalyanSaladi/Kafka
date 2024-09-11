@@ -1,0 +1,507 @@
+﻿STEP 1: RUN REDIS SERVER AND REDIS-CLI IN SRC[root@server1 ~]# wget https://download.redis.io/releases/redis-7.4.0.tar.gz
+
+
+100%[=================================================>]   3.36M  1.92MB/s    in 1.8s
+
+
+2024-08-03 16:39:08 (1.92 MB/s) - ‘redis-7.4.0.tar.gz’ saved [3525325/3525325]
+
+
+[root@server1 ~]# tar xzf redis-7.4.0.tar.gz
+[root@server1 ~]# ls -lrt
+total 3456
+drwxrwxr-x  8 root root    4096 Jul 29 11:01 redis-7.4.0
+-rw-r--r--  1 root root 3525325 Jul 29 11:11 redis-7.4.0.tar.gz
+
+
+[root@server1 ~]# cd redis-7.4.0/
+
+
+[root@server1 redis-7.4.0]# make
+
+
+[root@server1 src]#./redis-server &
+
+
+[root@server1 src]# ps -ef | grep redis
+root       12357    2097  0 16:53 pts/0    00:00:00 ./redis-server *:6379
+root       12364    2097  0 16:54 pts/0    00:00:00 grep --color=auto redis
+
+
+[root@server1 src]# ./redis-cli
+127.0.0.1:6379> set sport cricket
+OK
+127.0.0.1:6379> get sport
+"cricket"
+
+
+[root@server1 redis-7.4.0]# ls
+00-RELEASENOTES     deps         MANIFESTO               runtest            SECURITY.md    TLS.md
+BUGS                INSTALL      README.md               runtest-cluster    sentinel.conf  utils
+CODE_OF_CONDUCT.md  LICENSE.txt  redis.conf              runtest-moduleapi  src
+CONTRIBUTING.md     Makefile     REDISCONTRIBUTIONS.txt  runtest-sentinel   tests
+
+
+[root@server1 redis-7.4.0]# vi redis.conf
+
+
+[root@server1 redis-7.4.0]# cat redis.conf
+
+
+
+
+
+
+Redis persistence
+How Redis writes data to disk
+Persistence refers to the writing of data to durable storage, such as a solid-state disk (SSD). Redis provides a range of persistence options. These include:
+* RDB (Redis Database): RDB persistence performs point-in-time snapshots of your dataset at specified intervals.
+* AOF (Append Only File): AOF persistence logs every write operation received by the server. These operations can then be replayed again at server startup, reconstructing the original dataset. Commands are logged using the same format as the Redis protocol itself.
+* No persistence: You can disable persistence completely. This is sometimes used when caching.
+* RDB + AOF: You can also combine both AOF and RDB in the same instance.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+STEPS TO SETUP RDB SNAPSHOTS
+
+
+STEP 1 : Download a sample csv file
+
+
+[root@server1 ~]# wget https://github.com/umpirsky/country-list/raw/master/data/en_US/country.csv
+
+
+--2024-08-03 17:15:43--  https://github.com/umpirsky/country-list/raw/master/data/en_US/country.csv
+
+
+Saving to: ‘country.csv’
+country.csv                   100%[=================================================>]   3.49K  --.-KB/s    in 0s
+
+
+2024-08-03 17:15:44 (42.0 MB/s) - ‘country.csv’ saved [3573/3573]
+
+
+STEP 2:Data cleaning using awk
+[root@server1 ~]#  awk -F ',' '{print "SET " $1 " " $2 " "}' country.csv > output.csv
+
+
+[root@server1 ~]# cat output.csv
+SET id value
+SET AF Afghanistan
+SET AX "Åland Islands"
+SET AL Albania
+SET DZ Algeria
+SET AS "American Samoa"
+SET AD Andorra
+SET AO Angola
+SET AI Anguilla
+SET AQ Antarctica
+SET AG "Antigua & Barbuda"
+SET AR Argentina
+SET AM Armenia
+SET AW Aruba
+SET AU Australia
+SET AT Austria
+SET AZ Azerbaijan
+SET BS Bahamas
+SET BH Bahrain
+SET BD Bangladesh
+SET BB Barbados
+SET BY Belarus
+SET BE Belgium
+SET BZ Belize
+
+
+STEP 3:Bulk loading of data using --pipe approach
+[root@server1 ~]#  cat  output.csv  | /root/redis-7.4.0/src/redis-cli --pipe
+All data transferred. Waiting for the last reply...
+Last reply received from server.
+errors: 0, replies: 250
+
+
+[root@server1 ~]# cd /root/redis-7.4.0/src/
+
+
+[root@server1 src]# ./redis-cli
+127.0.0.1:6379> dbsize
+(integer) 250
+127.0.0.1:6379> keys *
+  1) "GP"
+  2) "LK"
+  3) "FJ"
+  4) "CM"
+  5) "SB"
+  6) "MA"
+  7) "IL"
+Note:By Killing the current pid we flush all the data,if not backed up using RDB snapshots.
+
+
+STEP 4 : Changes in redis.conf
+
+
+dbfilename dump_redis_test1.rdb
+ 
+dir /root/redis-7.4.0
+
+
+logfile  /root/redis-7.4.0/redis.log
+
+
+syslog-enabled yes
+
+
+syslog-ident redis
+
+
+save 30 50
+save 3600 1
+save 300 100
+save 60 10000
+STEP 5: Kill the redis process(if any) and re-run using changed configurations
+
+
+[root@server1 redis-7.4.0]# ps -ef |grep redis
+root       43336   38163  0 Aug15 pts/1    00:07:48 ./redis-server *:6379
+root       56282   38163  0 11:16 pts/1    00:00:00 grep --color=auto redis
+
+
+[root@server1 redis-7.4.0]# kill -9 43336
+
+
+
+
+[root@server1 src]# ./redis-server  /root/redis-7.4.0/redis.conf  &
+[1] 56295
+
+
+[root@server1 src]# ps -ef |grep redis
+root       56295   38163  1 11:17 pts/1    00:00:00 ./redis-server 127.0.0.1:6379
+root       56302   38163  0 11:17 pts/1    00:00:00 grep --color=auto redis
+
+
+[root@server1 src]# ./redis-cli
+127.0.0.1:6379> DBSIZE
+(integer) 0
+127.0.0.1:6379> exit
+
+
+[root@server1 src]# cd
+
+
+[root@server1 ~]# cat  output.csv  | /root/redis-7.4.0/src/redis-cli --pipe
+All data transferred. Waiting for the last reply...
+Last reply received from server.
+errors: 0, replies: 250
+
+
+[root@server1 ~]# cd redis-7.4.0/
+
+
+[root@server1 redis-7.4.0]# cd src/
+
+
+[root@server1 src]# ./redis-cli
+127.0.0.1:6379> DBSIZE
+(integer) 250
+127.0.0.1:6379> keys *
+  1) "LA"
+  2) "SA"
+  3) "TZ"
+  4) "SM"
+  5) "TD"
+  6) "NI"
+
+
+
+
+[root@server1 src]# ps -ef |grep redis
+root       56295   38163  0 11:17 pts/1    00:00:00 ./redis-server 127.0.0.1:6379
+root       56327   38163  0 11:19 pts/1    00:00:00 grep --color=auto redis
+
+
+[root@server1 src]# kill -9 56295
+
+
+[root@server1 src]# ps -ef |grep redis
+root       56330   38163  0 11:19 pts/1    00:00:00 grep --color=auto redis
+[1]+  Killed                  ./redis-server /root/redis-7.4.0/redis.conf
+
+
+[root@server1 src]# ./redis-server /root/redis-7.4.0/redis.conf  &
+[1] 56331
+
+
+[root@server1 src]# ps -ef |grep redis
+root       56331   38163  0 11:19 pts/1    00:00:00 ./redis-server 127.0.0.1:6379
+root       56338   38163  0 11:19 pts/1    00:00:00 grep --color=auto redis
+
+
+[root@server1 src]# ./redis-cli
+127.0.0.1:6379> DBSIZE
+(integer) 250
+127.0.0.1:6379> keys *
+  1) "SE"
+  2) "IM"
+  3) "CC"
+  4) "SZ"
+  5) "BQ"
+  6) "AX"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ AOF (Append Only File)-
+
+
+STEP 1 : Make Changes in redis.conf
+
+
+[root@server1 redis-7.4.0]# vi redis.conf
+
+
+Comment save to stop snapshotting. Aof file is also going to be saved in dir  property in conf file
+dir /root/redis-7.4.0
+logfile  /root/redis-7.4.0/redis.log
+syslog-enabled yes
+syslog-ident redis
+appendonly yes
+appendfilename "Redis_backup.aof"
+appendfsync everysec
+
+
+[root@server1 src]# ./redis-server /root/redis-7.4.0/redis.conf  &
+[3] 56488
+
+
+[root@server1 src]# ps -ef | grep redis
+root       56453   38163  0 11:30 pts/1    00:00:01 ./redis-server 127.0.0.1:6379
+root       56490   38163  0 11:32 pts/1    00:00:00 grep --color=auto redis
+[3]+  Exit 1                  ./redis-server /root/redis-7.4.0/redis.conf
+
+
+[root@server1 src]# kill -9 56453
+
+
+[root@server1 src]# ps -ef |grep redis
+root       56500   38163  0 11:32 pts/1    00:00:00 grep --color=auto redis
+[2]+  Killed                  ./redis-server /root/redis-7.4.0/redis.conf
+
+
+[root@server1 src]# ./redis-server /root/redis-7.4.0/redis.conf  &
+[1] 56503
+
+
+[root@server1 src]# ./redis-cli
+127.0.0.1:6379> DBSIZE
+(integer) 0
+127.0.0.1:6379> keys *
+(empty array)
+127.0.0.1:6379> exit
+
+
+[root@server1 src]# cd ..
+
+
+[root@server1 redis-7.4.0]# cd
+
+
+[root@server1 ~]# cat  output.csv  | /root/redis-7.4.0/src/redis-cli --pipe
+All data transferred. Waiting for the last reply...
+Last reply received from server.
+errors: 0, replies: 250
+
+
+[root@server1 ~]# cd /root/redis-7.4.0/src/
+
+
+[root@server1 src]# ps -ef |grep redis
+root       56503   38163  0 11:33 pts/1    00:00:00 ./redis-server 127.0.0.1:6379
+root       56534   38163  0 11:34 pts/1    00:00:00 grep --color=auto redis
+
+
+[root@server1 src]# cd ..
+
+
+[root@server1 redis-7.4.0]# ls
+00-RELEASENOTES     deps                  MANIFESTO               runtest            sentinel.conf
+appendonlydir       dump_redis_test1.rdb  README.md               runtest-cluster    src
+BUGS                INSTALL               redis.conf              runtest-moduleapi  tests
+CODE_OF_CONDUCT.md  LICENSE.txt           REDISCONTRIBUTIONS.txt  runtest-sentinel   TLS.md
+CONTRIBUTING.md     Makefile              redis.log               SECURITY.md        utils
+
+
+[root@server1 redis-7.4.0]# cd appendonlydir/
+
+
+[root@server1 appendonlydir]# ls
+Redis_backup.aof.1.base.rdb  Redis_backup.aof.1.incr.aof  Redis_backup.aof.manifest
+
+
+
+
+[root@server1 appendonlydir]# pwd
+/root/redis-7.4.0/appendonlydir
+
+
+
+
+[root@server1 redis-7.4.0]# cd appendonlydir/
+
+
+[root@server1 appendonlydir]# ls -lrt
+total 20
+-rw-r--r-- 1 root root   88 Aug 16 11:30 Redis_backup.aof.1.base.rdb
+-rw-r--r-- 1 root root   92 Aug 16 11:30 Redis_backup.aof.manifest
+-rw-r--r-- 1 root root 9297 Aug 16 11:34 Redis_backup.aof.1.incr.aof
+
+
+[root@server1 appendonlydir]# cd ..
+
+
+[root@server1 redis-7.4.0]# cd src/
+
+
+[root@server1 src]# ./redis-cli
+127.0.0.1:6379> DBSIZE
+(integer) 250
+127.0.0.1:6379> exit
+
+
+[root@server1 src]# ps -ef |grep redis
+root       56503   38163  0 11:33 pts/1    00:00:01 ./redis-server 127.0.0.1:6379
+root       56549   38163  0 11:35 pts/1    00:00:00 grep --color=auto redis
+
+
+[root@server1 src]# kill -9 56503
+
+
+[root@server1 src]# ps -ef |grep redis
+root       56551   38163  0 11:36 pts/1    00:00:00 grep --color=auto redis
+[1]+  Killed                  ./redis-server /root/redis-7.4.0/redis.conf
+
+
+[root@server1 src]# ./redis-server /root/redis-7.4.0/redis.conf  &
+[1] 56552
+
+
+[root@server1 src]# ./redis-cli
+127.0.0.1:6379> DBSIZE
+(integer) 250
+127.0.0.1:6379> keys *
+  1) "AS"
+  2) "DE"
+  3) "IM"
+  4) "MZ"
+  5) "MP"
+  6) "TZ"
+  7) "CY"
+  8) "HM"
+  9) "MX"
+ 10) "KN"
+ 11) "KW"
+
+
+
+
+
+
+
+
+The three files in your `appendonlydir` directory are related to Redis's persistence mechanism, specifically the Append-Only File (AOF) persistence. Here's a brief explanation of each file and their differences:
+
+
+1. **Redis_backup.aof.1.base.rdb**:
+   - **Type**: This is a base RDB (Redis Database) file.
+   - **Purpose**: It represents a snapshot of your Redis data at a certain point in time. RDB files are binary snapshots of the entire dataset at the time of creation.
+   - **Usage**: When using AOF persistence with the `aof-use-rdb-preamble` option enabled, Redis first creates an RDB file as a base snapshot and then appends subsequent changes using AOF files.
+
+
+2. **Redis_backup.aof.manifest**:
+   - **Type**: This is a manifest file.
+   - **Purpose**: It tracks the sequence and the status of AOF files, including the base RDB file and the incremental AOF files.
+   - **Usage**: The manifest file is used by Redis to manage and organize the loading of the AOF data during startup. It helps Redis understand the order and combination of RDB and AOF files to reconstruct the dataset correctly.
+
+
+3. **Redis_backup.aof.1.incr.aof**:
+   - **Type**: This is an incremental AOF file.
+   - **Purpose**: It contains the append-only log of commands that have been executed since the creation of the base RDB snapshot. These logs are in plain text and represent the incremental changes made to the dataset after the base RDB snapshot was taken.
+   - **Usage**: During startup, Redis loads the base RDB file first and then replays the commands in the incremental AOF file to bring the dataset up to the current state.
+
+
+### Summary of Differences:
+
+
+- **Content**:
+  - **Redis_backup.aof.1.base.rdb**: Contains a binary snapshot of the entire dataset at a specific point in time.
+  - **Redis_backup.aof.1.incr.aof**: Contains incremental changes (commands) in plain text format that occurred after the base RDB snapshot.
+  - **Redis_backup.aof.manifest**: Contains metadata and organizational information to help Redis manage the AOF files and their loading sequence.
+
+
+- **Purpose**:
+  - **Redis_backup.aof.1.base.rdb**: Provides a starting point for dataset recovery.
+  - **Redis_backup.aof.1.incr.aof**: Captures ongoing changes to the dataset after the base snapshot.
+  - **Redis_backup.aof.manifest**: Maintains the sequence and status of AOF files for proper reconstruction of the dataset.
+
+
+- **Format**:
+  - **Redis_backup.aof.1.base.rdb**: Binary format.
+  - **Redis_backup.aof.1.incr.aof**: Plain text format.
+  - **Redis_backup.aof.manifest**: Plain text format with metadata.
+
+
+By understanding these differences, you can better manage your Redis persistence strategy and ensure that your data is properly backed up and recoverable.

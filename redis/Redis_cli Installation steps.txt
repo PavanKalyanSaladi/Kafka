@@ -1,0 +1,100 @@
+﻿STEP 1 : UPDATE THE HOSTNAME IN EACH MACHINE LIKE BELOW.
+ 
+[root@localhost ~]# vi /etc/hosts
+
+
+[root@localhost ~]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+
+192.168.0.108 server1.Redis.com
+
+
+
+
+STEP 2 : DISABLE SELINUX
+
+
+          vi /etc/selinux/config
+
+
+            SELINUX=disabled
+
+
+STEP 3 : DISABLE FIREWALL
+
+
+         systemctl stop firewalld
+         systemctl disable firewalld
+ [root@localhost ~]# systemctl status  firewalld
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor >
+   Active: inactive (dead)
+     Docs: man:firewalld(1)
+
+
+
+
+STEP 4 : INSTALL NTP
+ 
+   dnf install chrony
+   systemctl enable chronyd
+ 
+   vi /etc/chrony.conf    (add this line -        allow 192.168.1.0/24)
+                                                                               
+   systemctl restart chronyd
+   firewall-cmd --permanent --add-service=ntp
+   firewall-cmd --reload
+   
+   chronyc sources
+
+
+STEP 5 : REBOOT THE MACHINE (reboot (or) init 6)
+
+
+         init 6
+
+
+NOTE: IF THE HOSTNAME IS NOT CHANGED AFTER REBOOT, RUN THIS COMMAND TO SET REQUIRED HOSTNAME 
+               -  hostnamectl set-hostname server1.Redis.com
+
+
+STEP 6 : DOWNLOAD REDIS SOFTWARE 
+[root@server1 ~]# wget https://download.redis.io/releases/redis-7.4.0.tar.gz
+       100%[=================================================>]   3.36M  1.92MB/s    in 1.8s
+
+
+2024-08-03 16:39:08 (1.92 MB/s) - ‘redis-7.4.0.tar.gz’ saved [3525325/3525325]
+
+
+[root@server1 ~]# tar xzf redis-7.4.0.tar.gz
+[root@server1 ~]# ls -lrt
+total 3456
+-rw-------. 1 root root    2065 May  4  2021 anaconda-ks.cfg
+-rw-r--r--. 1 root root    2113 May  4  2021 initial-setup-ks.cfg
+drwxr-xr-x. 2 root root      33 Jul 24 19:48 tmp_leapp_py3
+drwxrwxr-x  8 root root    4096 Jul 29 11:01 redis-7.4.0
+-rw-r--r--  1 root root 3525325 Jul 29 11:11 redis-7.4.0.tar.gz
+
+
+[root@server1 ~]# cd redis-7.4.0/
+
+
+[root@server1 redis-7.4.0]# make
+
+
+STEP 7: RUN REDIS SERVER AND REDIS-CLI IN SRC 
+[root@server1 src]#./redis-server &
+
+
+[root@server1 src]# ps -ef | grep redis
+root       12357    2097  0 16:53 pts/0    00:00:00 ./redis-server *:6379
+root       12364    2097  0 16:54 pts/0    00:00:00 grep --color=auto redis
+
+
+[root@server1 src]# ./redis-cli
+127.0.0.1:6379> set sport cricket
+OK
+127.0.0.1:6379> get sport
+"cricket"

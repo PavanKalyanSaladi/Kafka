@@ -1,0 +1,499 @@
+﻿NOTE: RUN STEP 1 TO STEP 6 IN ALL 3 Redis NODES
+
+
+
+
+STEP 1 : UPDATE THE HOSTNAME IN EACH MACHINE LIKE BELOW.
+ 
+[root@localhost ~]# vi /etc/hosts
+
+
+[root@localhost ~]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.0.108 server1.Redis.com
+192.168.0.110 server2.Redis.com
+192.168.0.111 server3.Redis.com
+
+
+
+
+STEP 2 : DISABLE SELINUX
+
+
+          vi /etc/selinux/config
+
+
+            SELINUX=disabled
+
+
+STEP 3 : DISABLE FIREWALL
+
+
+         systemctl stop firewalld
+         systemctl disable firewalld
+                 [root@localhost ~]# systemctl status  firewalld
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor >
+   Active: inactive (dead)
+     Docs: man:firewalld(1)
+
+
+
+
+STEP 4 : INSTALL NTP
+   dnf install chrony
+   systemctl enable chronyd
+ 
+   vi /etc/chrony.conf    (add this line -        allow 192.168.1.0/24)
+                                                                               
+   systemctl restart chronyd
+   firewall-cmd --permanent --add-service=ntp
+   firewall-cmd --reload
+   
+   chronyc sources
+STEP 5 : REBOOT THE MACHINES (reboot (or) init 6)
+
+
+         init 6
+
+
+NOTE: IF THE HOSTNAME IS NOT CHANGED AFTER REBOOT, RUN THIS COMMAND TO SET REQUIRED HOSTNAME 
+               -  hostnamectl set-hostname server1.Redis.com
+
+
+STEP 6 : ONCE REBOOT IS DONE, LOGIN IN ALL MACHINES AND PERFORM PASSWORDLESS SSH PROCESS.
+
+
+       ssh-keygen -t rsa      (PRESS ENTER 4 TIMES)
+       cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+       ssh-copy-id root@<hostname>     (IN server1.Redis.com, GIVE "server2.Redis.com and server3.Redis.com"  FQDN  IN PLACE OF HOSTNAME & type YES and enter password tekcrux@123)
+       ssh <hostname>    (  ssh server1.Redis.com  ,    ssh server2.Redis.com  ,    ssh server3.Redis.com  )
+       exit
+       ssh-copy-id  root@server1.Redis.com 
+           ssh-copy-id  root@server2.Redis.com
+       ssh-copy-id  root@server3.Redis.com
+
+
+
+
+Using this command try to check if you are able to connect without password with each other servers:
+ssh server1.Redis.com
+
+
+ssh server2.Redis.com
+
+
+ssh server3.Redis.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Redis Sentinel is going to allow us a Mechanism using which
+We are going to Automate basically the process of making a Slave Node to a Master Node.
+
+
+192.168.0.108 server1.Redis.com      master
+192.168.0.110 server2.Redis.com        slave
+192.168.0.111 server3.Redis.com        slave
+Changes in masternode
+In redis.conf file
+ 
+  bind     192.168.0.108
+
+
+  logfile   “/tmp/redis.log”
+
+
+  syslog-enabled yes
+
+
+# Specify the syslog identity.
+ syslog-ident redis
+
+
+protected-mode no
+
+
+In sentinel.conf
+
+
+
+
+bind     192.168.0.108
+
+
+logfile "/tmp/sentinel.log"
+# Specify the syslog identity.
+syslog-ident sentinel
+
+
+
+
+
+
+# and optionally update the other syslog parameters to suit your needs.
+syslog-enabled yes
+sentinel monitor mymaster 192.168.0.108  6379 2
+
+
+sentinel down-after-milliseconds mymaster 30000
+
+
+Changes In Slave Node 1
+In  Redis.conf
+
+
+bind 192.168.0.110
+
+
+
+
+logfile "/tmp/redis.log"
+
+
+# To enable logging to the system logger, just set 'syslog-enabled' to yes,
+# and optionally update the other syslog parameters to suit your needs.
+syslog-enabled yes
+
+
+# Specify the syslog identity.
+syslog-ident redis
+
+
+replicaof 192.168.0.108  6379
+
+
+protected-mode no
+In sentinel.conf
+
+
+bind 192.168.0.110
+
+
+logfile "/tmp/sentinel.log"
+
+
+# To enable logging to the system logger, just set 'syslog-enabled' to yes,
+# and optionally update the other syslog parameters to suit your needs.
+syslog-enabled yes
+
+
+# Specify the syslog identity.
+syslog-ident sentinel
+
+
+
+
+
+
+sentinel monitor mymaster 192.168.0.108  6379 2
+
+
+sentinel down-after-milliseconds mymaster 30000
+
+
+Changes In Slave Node 2
+In  Redis.conf
+
+
+bind 192.168.0.111
+
+
+
+
+logfile "/tmp/redis.log"
+
+
+# To enable logging to the system logger, just set 'syslog-enabled' to yes,
+# and optionally update the other syslog parameters to suit your needs.
+syslog-enabled yes
+
+
+# Specify the syslog identity.
+syslog-ident redis
+
+
+replicaof 192.168.0.108  6379
+
+
+protected-mode no
+
+
+
+
+In sentinel.conf
+
+
+bind 192.168.0.111
+
+
+logfile "/tmp/sentinel.log"
+
+
+# To enable logging to the system logger, just set 'syslog-enabled' to yes,
+# and optionally update the other syslog parameters to suit your needs.
+syslog-enabled yes
+
+
+# Specify the syslog identity.
+syslog-ident sentinel
+
+
+
+
+
+
+sentinel monitor mymaster 192.168.0.108  6379 2
+
+
+sentinel down-after-milliseconds mymaster 30000
+
+
+RUN REDIS-SERVER AND REDIS -SENTINEL IN ALL 3 NODES
+[root@server1 src]# ./redis-server ../redis.conf &  
+
+
+[root@server1 src]# ps -ef | grep redis
+
+
+[root@server1 src]# ./redis-sentinel ../sentinel.conf  &
+
+
+[root@server1 src]# ps -ef |grep redis
+root       11285    5452  0 19:26 pts/0    00:00:00 ./                                                           redis-server 192.168.0.108:6379
+root       11303    5452  1 19:27 pts/0    00:00:00 ./                                                           redis-sentinel 192.168.0.108:26379 [sentinel]
+root       11318    5452  0 19:28 pts/0    00:00:00 gr                                                           ep --color=auto redis
+
+
+
+
+[root@server1 src]# tail -f /tmp/redis.log 
+
+
+[root@server1 src]# tail -f /tmp/sentinel.log
+
+
+
+
+[root@server1 src]# redis-cli
+
+
+bash: redis-cli: command not found...
+Install package 'redis' to provide command 'redis-cli'? [N/y] y
+
+
+ * Waiting in queue...
+ * Loading list of packages....
+The following packages have to be installed:
+ redis-5.0.3-5.module_el8.4.0+2583+b9845322.x86_64      A persistent key-value database
+Proceed with changes? [N/y] y
+ * Downloading packages...
+ * Requesting data...
+ * Testing changes...
+ * Installing packages...
+Could not connect to Redis at 127.0.0.1:6379: Connection refused
+
+
+[root@server1 src]# redis-cli -h 192.168.0.108
+192.168.0.108:6379> set sport cric
+OK
+192.168.0.108:6379> get sport
+"cric"
+
+
+
+
+
+
+[root@server3 src]# redis-cli -h 192.168.0.110
+192.168.0.110:6379> set sport cric
+(error) READONLY You can't write against a read only replica.
+192.168.0.110:6379> keys *
+1) "sport"
+
+
+[root@server1 src]# redis-cli -h 192.168.0.108 -p 26379
+192.168.0.108:26379> sentinel master mymaster
+ 1) "name"
+ 2) "mymaster"
+ 3) "ip"
+ 4) "192.168.0.108"
+ 5) "port"
+ 6) "6379"
+ 7) "runid"
+ 8) "a29f0aa2627e51464e01b309dd730caefc8ea943"
+ 9) "flags"
+10) "master"
+11) "link-pending-commands"
+12) "0"
+13) "link-refcount"
+14) "1"
+15) "last-ping-sent"
+16) "0"
+17) "last-ok-ping-reply"
+18) "991"
+[root@server2 src]# redis-cli -h 192.168.0.108 -p 26379
+192.168.0.108:26379> sentinel master mymaster
+ 1) "name"
+ 2) "mymaster"
+ 3) "ip"
+ 4) "192.168.0.108"
+ 5) "port"
+ 6) "6379"
+ 7) "runid"
+ 8) "a29f0aa2627e51464e01b309dd730caefc8ea943"
+ 9) "flags"
+10) "master"
+11) "link-pe
+Now we are killing the master node and checking whether failover is happening successfully.
+Here in this case master had been shifted to third node.
+
+
+
+
+[root@server3 ~]# cd /tmp/
+[root@server3 tmp]# ls
+dbus-session-monitor.1xfhaQ
+redis.log
+sentinel.log
+systemd-private-154e8738d5a74a55b41479017c3dc3c3-chron                                                           yd.service-FfZsus
+systemd-private-154e8738d5a74a55b41479017c3dc3c3-color                                                           d.service-sfeiho
+systemd-private-154e8738d5a74a55b41479017c3dc3c3-Modem                                                           Manager.service-gLmEFe
+systemd-private-154e8738d5a74a55b41479017c3dc3c3-postf                                                           ix.service-kJVL7C
+systemd-private-154e8738d5a74a55b41479017c3dc3c3-rtkit                                                           -daemon.service-ZkXCyg
+[root@server3 tmp]# cat redis.log
+16389:C 16 Aug 2024 19:26:18.504 # WARNING Memory over                                                           commit must be enabled! Without it, a background save                                                            or replication may fail under low memory condition. Be                                                           ing disabled, it can also cau
+
+
+
+
+
+
+
+
+16389:S 16 Aug 2024 19:34:40.515 # Error condition on                                                            socket for SYNC: Connection refused
+16389:M 16 Aug 2024 19:34:41.146 * Discarding previous                                                           ly cached master state.
+16389:M 16 Aug 2024 19:34:41.146 * Setting secondary r                                                           eplication ID to acf48f6762ab07435b0d9723c7e1c593c753d                                                           32d, valid up to offset: 75215. New replication ID is                                                            9792b659f84ecbd54b4558c8d4353adeea5342f1
+16389:M 16 Aug 2024 19:34:41.147 * MASTER MODE enabled                                                            (user request from 'id=7 addr=192.168.0.110:44690 lad                                                           dr=192.168.0.111:6379 fd=15 name=sentinel-9bfff441-cmd                                                            age=390 idle=0 flags=x db=0 sub=0 psub=0 ssub=0 multi                                                           =4 watch=0 qbuf=202 qbuf-free=20272 argv-mem=4 multi-m                                                           em=169 rbs=2048 rbp=1024 obl=45 oll=0 omem=0 tot-mem=2                                                           3717 events=r cmd=exec user=default redir=-1 resp=2 li                                                           b-name= lib-ver=')
+16389:M 16 Aug 2024 19:34:41.162 * CONFIG REWRITE exec                                                           uted with success.
+16389:M 16 Aug 2024 19:34:41.238 * Replica 192.168.0.1                                                           10:6379 asks for synchronization
+16389:M 16 Aug 2024 19:34:41.238 * Partial resynchroni                                                           zation request from 192.168.0.110:6379 accepted. Sendi                                                           ng 164 bytes of backlog starting from offset 75215.
+[root@server3 tmp]# cat sentinel.log
+16412:X 16 Aug 2024 19:28:14.107 # WARNING Memory over                                                           commit must be enabled! Without it, a background save                                                            or replication may fail under low memory condition. Be                                                           ing disabled, it can also cause failures without low m                                                           emory condition, see https://github.com/jemalloc/jemal                                                           loc/issues/1328. To fix this issue add 'vm.overcommit_                                                           memory = 1' to /etc/sysctl.conf and then reboot or run                                                            the command 'sysctl vm.overcommit_memory=1' for this                                                            to take effect.
+16412:X 16 Aug 2024 19:28:14.107 * oO0OoO0OoO0Oo Redis                                                            is starting oO0OoO0OoO0Oo
+16412:X 16 Aug 2024 19:28:14.108 * Redis version=7.4.0                                                           , bits=64, commit=00000000, modified=0, pid=16412, jus                                                           t started
+16412:X 16 Aug 2024 19:28:14.108 * Configuration loade                                                           d
+16412:X 16 Aug 2024 19:28:14.108 * Increased maximum n                                                           umber of open files to 10032 (it was originally set to                                                            1024).
+16412:X 16 Aug 2024 19:28:14.108 * monotonic clock: PO                                                           SIX clock_gettime
+16412:X 16 Aug 2024 19:28:14.109 * Running mode=sentin                                                           el, port=26379.
+16412:X 16 Aug 2024 19:28:14.125 * Sentinel new config                                                           uration saved on disk
+16412:X 16 Aug 2024 19:28:14.125 * Sentinel ID is cb14                                                           2dcf0a4606b3d053e537f402bcf1577f9dad
+16412:X 16 Aug 2024 19:28:14.125 # +monitor master mym                                                           aster 192.168.0.108 6379 quorum 2
+16412:X 16 Aug 2024 19:28:14.129 * +slave slave 192.16                                                           8.0.111:6379 192.168.0.111 6379 @ mymaster 192.168.0.1                                                           08 6379
+16412:X 16 Aug 2024 19:28:14.145 * Sentinel new config                                                           uration saved on disk
+16412:X 16 Aug 2024 19:28:14.145 * +slave slave 192.16                                                           8.0.110:6379 192.168.0.110 6379 @ mymaster 192.168.0.1                                                           08 6379
+16412:X 16 Aug 2024 19:28:14.166 * Sentinel new config                                                           uration saved on disk
+16412:X 16 Aug 2024 19:28:14.833 * +sentinel sentinel                                                            e005439877e15c2daa2735a5da3fd9535d32d839 192.168.0.108                                                            26379 @ mymaster 192.168.0.108 6379
+16412:X 16 Aug 2024 19:28:14.844 * Sentinel new config                                                           uration saved on disk
+16412:X 16 Aug 2024 19:28:15.261 * +sentinel sentinel                                                            9bfff4416fcc8c862651a15e4416c8f6119f9ca6 192.168.0.110                                                            26379 @ mymaster 192.168.0.108 6379
+16412:X 16 Aug 2024 19:28:15.273 * Sentinel new config                                                           uration saved on disk
+16412:X 16 Aug 2024 19:34:40.849 # +sdown master mymas                                                           ter 192.168.0.108 6379
+16412:X 16 Aug 2024 19:34:40.935 # +odown master mymas                                                           ter 192.168.0.108 6379 #quorum 3/2
+16412:X 16 Aug 2024 19:34:40.935 # +new-epoch 1
+16412:X 16 Aug 2024 19:34:40.935 # +try-failover maste                                                           r mymaster 192.168.0.108 6379
+16412:X 16 Aug 2024 19:34:40.947 * Sentinel new config                                                           uration saved on disk
+16412:X 16 Aug 2024 19:34:40.947 # +vote-for-leader cb                                                           142dcf0a4606b3d053e537f402bcf1577f9dad 1
+16412:X 16 Aug 2024 19:34:40.951 * 9bfff4416fcc8c86265                                                           1a15e4416c8f6119f9ca6 voted for 9bfff4416fcc8c862651a1                                                           5e4416c8f6119f9ca6 1
+16412:X 16 Aug 2024 19:34:40.972 * e005439877e15c2daa2                                                           735a5da3fd9535d32d839 voted for 9bfff4416fcc8c862651a1                                                           5e4416c8f6119f9ca6 1
+16412:X 16 Aug 2024 19:34:41.200 # +config-update-from                                                            sentinel 9bfff4416fcc8c862651a15e4416c8f6119f9ca6 192                                                           .168.0.110 26379 @ mymaster 192.168.0.108 6379
+16412:X 16 Aug 2024 19:34:41.200 # +switch-master myma                                                           ster 192.168.0.108 6379 192.168.0.111 6379
+16412:X 16 Aug 2024 19:34:41.200 * +slave slave 192.16                                                           8.0.110:6379 192.168.0.110 6379 @ mymaster 192.168.0.1                                                           11 6379
+16412:X 16 Aug 2024 19:34:41.200 * +slave slave 192.16                                                           8.0.108:6379 192.168.0.108 6379 @ mymaster 192.168.0.1                                                           11 6379
+16412:X 16 Aug 2024 19:34:41.216 * Sentinel new config                                                           uration saved on disk
+16412:X 16 Aug 2024 19:35:11.255 # +sdown slave 192.16                                                           8.0.108:6379 192.168.0.108 6379 @ mymaster 192.168.0.1                                                           11 6379
+
+
+
+
+
+
+[root@server3 src]# ./redis-cli -h 192.168.0.111
+192.168.0.111:6379> set 1 cricket
+OK
+192.168.0.111:6379> set 1 cricket
+OK
+192.168.0.111:6379> get sport
+"1"
+192.168.0.111:6379> exit
+
+
+
+
+
+
+[root@server2 ~]# redis-cli -h 192.168.0.110
+192.168.0.110:6379> get sport
+(nil)
+192.168.0.110:6379> set sport
+(error) ERR wrong number of arguments for 'set' command
+192.168.0.110:6379> set sport 1
+(error) READONLY You can't write against a read only replica.
+192.168.0.110:6379> exit
+[root@server2 ~]# redis-cli -h 192.168.0.111
+192.168.0.111:6379> set sport 1
+OK
+192.168.0.111:6379> get sport
+"1"
+
+
+Logs in older master node
+* Before turning into a replica, using my own master parameters to synthesize a cached master: I may be able to synchronize with the new master with just a partial transfer.
+69111:S 18 Aug 2024 21:33:43.667 * Connecting to MASTER 192.168.0.111:6379
+69111:S 18 Aug 2024 21:33:43.667 * MASTER <-> REPLICA sync started
+69111:S 18 Aug 2024 21:33:43.667 * REPLICAOF 192.168.0.111:6379 enabled (user request from 'id=3 addr=192.168.0.110:34168 laddr=192.168.0.108:6379 fd=11 name=sentinel-9bfff441-cmd age=10 idle=0 flags=x db=0 sub=0 psub=0 ssub=0 multi=4 watch=0 qbuf=201 qbuf-free=20273 argv-mem=4 multi-mem=181 rbs=1024 rbp=1024 obl=45 oll=0 omem=0 tot-mem=22705 events=r cmd=exec user=default redir=-1 resp=2 lib-name= lib-ver=')
+69111:S 18 Aug 2024 21:33:43.681 * CONFIG REWRITE executed with success.
+69111:S 18 Aug 2024 21:33:43.682 * Non blocking connect for SYNC fired the event.
+69111:S 18 Aug 2024 21:33:43.691 * Master replied to PING, replication can continue...
+69111:S 18 Aug 2024 21:33:43.699 * Trying a partial resynchronization (request 97765deda7ad6f161a7ab540515c8463f59c33c1:1).
+
+
+[root@server1 src]# 69111:S 18 Aug 2024 21:33:48.874 * Full resync from master: 9792b659f84ecbd54b4558c8d4353adeea5342f1:37447968
+69111:S 18 Aug 2024 21:33:48.880 * MASTER <-> REPLICA sync: receiving streamed RDB from master with EOF to disk
+69111:S 18 Aug 2024 21:33:48.881 * Discarding previously cached master state.
+69111:S 18 Aug 2024 21:33:48.881 * MASTER <-> REPLICA sync: Flushing old data
+69111:S 18 Aug 2024 21:33:48.881 * MASTER <-> REPLICA sync: Loading DB in memory
+69111:S 18 Aug 2024 21:33:48.892 * Loading RDB produced by version 7.4.0
+69111:S 18 Aug 2024 21:33:48.892 * RDB age 0 seconds
+69111:S 18 Aug 2024 21:33:48.892 * RDB memory usage when created 2.46 Mb
+69111:S 18 Aug 2024 21:33:48.892 * Done loading RDB, keys loaded: 2, keys expired: 0.
+69111:S 18 Aug 2024 21:33:48.892 * MASTER <-> REPLICA sync: Finished with success
+
+
+[root@server2 src]# redis-cli -h 192.168.0.108
+192.168.0.108:6379> set sport cric
+(error) READONLY You can't write against a read only replica.
+192.168.0.108:6379> keys *
+1) "sport"
+192.168.0.108:6379>get sport
+“cric”
